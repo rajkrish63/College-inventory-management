@@ -114,6 +114,7 @@ interface AppContextType {
   currentUser: AuthUser | null;
   login: (email: string, password: string) => { success: boolean; error?: string };
   logout: () => void;
+  updateUserProfile: (updates: { name?: string; email?: string }) => void;
 
   // Equipment
   equipment: Equipment[];
@@ -172,6 +173,30 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
 
   const logout = () => setCurrentUser(null);
 
+  const updateUserProfile = (updates: { name?: string; email?: string }) => {
+    if (!currentUser) return;
+
+    // Update currentUser state
+    setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+
+    // Synchronize with users list
+    if (currentUser.id !== "admin") {
+      setUsers(prev => prev.map(u => {
+        if (u.id === currentUser.id) {
+          const [firstName = "", ...lastNameParts] = (updates.name || "").split(" ");
+          const lastName = lastNameParts.join(" ");
+          return {
+            ...u,
+            firstName: updates.name ? firstName : u.firstName,
+            lastName: updates.name ? lastName : u.lastName,
+            email: updates.email || u.email
+          };
+        }
+        return u;
+      }));
+    }
+  };
+
   // Equipment
   const addEquipment = (item: Omit<Equipment, "id">) => {
     setEquipment((prev) => [...prev, { ...item, id: nextEquipId }]);
@@ -216,7 +241,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      currentUser, login, logout,
+      currentUser, login, logout, updateUserProfile,
       equipment, addEquipment, updateEquipmentStatus, deleteEquipment,
       facilities, addFacility, updateFacilityAvailability, deleteFacility,
       bookings, addBooking, updateBookingStatus,

@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { Navbar } from "../../components/Navbar";
+import { Sidebar } from "../../components/Sidebar";
 import {
   LayoutDashboard, CalendarCheck, FlaskConical, Building2, Users,
   PackagePlus, PlusCircle, CheckCircle, XCircle, Clock, Trash2,
   Search, Shield, Activity, ChevronRight, LogOut, ToggleLeft, ToggleRight, Filter,
+  LucideIcon, Settings, User
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -14,6 +17,8 @@ import {
 } from "../../components/ui/select";
 import { useAppContext } from "../../context/AppContext";
 import type { Booking, Equipment, Facility, AppUser } from "../../context/AppContext";
+import { SettingsModal } from "../../components/SettingsModal";
+import { LogoutModal } from "../../components/LogoutModal";
 
 type Section = "dashboard" | "bookings" | "equipment" | "facilities" | "users";
 
@@ -21,15 +26,15 @@ type Section = "dashboard" | "bookings" | "equipment" | "facilities" | "users";
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
-    Pending:     "bg-amber-100 text-amber-800 border-amber-200",
-    Approved:    "bg-green-100 text-green-800 border-green-200",
-    Rejected:    "bg-red-100 text-red-800 border-red-200",
-    Available:   "bg-green-100 text-green-800 border-green-200",
-    "In Use":    "bg-orange-100 text-orange-800 border-orange-200",
+    Pending: "bg-amber-100 text-amber-800 border-amber-200",
+    Approved: "bg-green-100 text-green-800 border-green-200",
+    Rejected: "bg-red-100 text-red-800 border-red-200",
+    Available: "bg-green-100 text-green-800 border-green-200",
+    "In Use": "bg-orange-100 text-orange-800 border-orange-200",
     Maintenance: "bg-red-100 text-red-800 border-red-200",
-    Active:      "bg-green-100 text-green-800 border-green-200",
-    Inactive:    "bg-gray-100 text-gray-600 border-gray-200",
-    Limited:     "bg-amber-100 text-amber-800 border-amber-200",
+    Active: "bg-green-100 text-green-800 border-green-200",
+    Inactive: "bg-gray-100 text-gray-600 border-gray-200",
+    Limited: "bg-amber-100 text-amber-800 border-amber-200",
     Unavailable: "bg-red-100 text-red-800 border-red-200",
   };
   return (
@@ -546,6 +551,8 @@ export function AdminPage() {
   const { currentUser, logout, bookings } = useAppContext();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<Section>("dashboard");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const pendingCount = bookings.filter((b) => b.status === "Pending").length;
 
   // Redirect non-admins
@@ -574,115 +581,73 @@ export function AdminPage() {
     );
   }
 
-  const navItems: { id: Section; label: string; icon: React.ElementType; badge?: number }[] = [
-    { id: "dashboard",  label: "Dashboard",  icon: LayoutDashboard },
-    { id: "bookings",   label: "Bookings",   icon: CalendarCheck, badge: pendingCount },
-    { id: "equipment",  label: "Equipment",  icon: FlaskConical },
+  const navItems: { id: Section; label: string; icon: LucideIcon; badge?: number }[] = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "bookings", label: "Bookings", icon: CalendarCheck, badge: pendingCount },
+    { id: "equipment", label: "Equipment", icon: FlaskConical },
     { id: "facilities", label: "Facilities", icon: Building2 },
-    { id: "users",      label: "Users",      icon: Users },
+    { id: "users", label: "Users", icon: Users },
   ];
 
   const handleLogout = () => { logout(); navigate("/"); };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
       {/* Admin Top Bar */}
-      <div className="bg-slate-900 text-white px-4 sm:px-6 lg:px-8 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-500 rounded-lg flex items-center justify-center">
-              <Shield className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-white leading-none">Admin Portal</p>
-              <p className="text-slate-400 text-xs">R&D Center Management</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-full text-xs">
-              <Activity className="h-3 w-3" />System Operational
-            </div>
-            <span className="text-slate-400 text-xs hidden sm:block">
-              Signed in as <span className="text-white font-medium">{currentUser.name}</span>
-            </span>
-            <Button size="sm" variant="ghost" className="text-slate-300 hover:text-white gap-1.5" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />Logout
-            </Button>
-            <Button size="sm" variant="ghost" className="text-slate-300 hover:text-white gap-1.5" asChild>
-              <Link to="/"><ChevronRight className="h-4 w-4 rotate-180" />Site</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <Navbar>
+        <Navbar.Brand
+          icon={Shield}
+          title="Admin Portal"
+          subtitle="R&D Center Management"
+        />
+        <Navbar.Actions>
+          <Button size="sm" variant="outline" className="text-gray-600 gap-1.5 border-gray-200 h-8" asChild>
+            <Link to="/"><ChevronRight className="h-4 w-4 rotate-180" />Site</Link>
+          </Button>
+        </Navbar.Actions>
+      </Navbar>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex gap-6">
+      <div className="flex-1 overflow-hidden w-full flex bg-white">
+        <div className="flex w-full h-full">
           {/* Sidebar — desktop */}
-          <aside className="hidden md:block w-52 flex-shrink-0">
-            <nav className="space-y-1 sticky top-6">
-              {navItems.map(({ id, label, icon: Icon, badge }) => (
-                <button
-                  key={id}
-                  onClick={() => setActiveSection(id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all ${
-                    activeSection === id
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-gray-600 hover:bg-white hover:shadow-sm hover:text-gray-900"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="h-4 w-4 flex-shrink-0" />
-                    <span className="font-medium">{label}</span>
-                  </div>
-                  {badge != null && badge > 0 && (
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${activeSection === id ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"}`}>
-                      {badge}
-                    </span>
-                  )}
-                </button>
-              ))}
-              <div className="pt-4 mt-2 border-t space-y-1">
-                <Link to="/admin/add-equipment" className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-blue-600 hover:bg-blue-50 transition-colors font-medium">
-                  <PackagePlus className="h-4 w-4" />Add Equipment
-                </Link>
-                <Link to="/admin/add-facility" className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-emerald-600 hover:bg-emerald-50 transition-colors font-medium">
-                  <PlusCircle className="h-4 w-4" />Add Facility
-                </Link>
-              </div>
-            </nav>
-          </aside>
+          <Sidebar>
+            <Sidebar.Nav>
+              <Sidebar.Section title="Management">
+                {navItems.map(({ id, label, icon: Icon, badge }) => (
+                  <Sidebar.Item
+                    key={id}
+                    label={label}
+                    icon={Icon}
+                    isActive={activeSection === id}
+                    onClick={() => setActiveSection(id)}
+                    badge={badge}
+                  />
+                ))}
+              </Sidebar.Section>
+            </Sidebar.Nav>
+            <Sidebar.Profile
+              onSettingsClick={() => setIsSettingsOpen(true)}
+              onLogoutClick={() => setIsLogoutOpen(true)}
+            />
+          </Sidebar>
 
-          {/* Mobile tabs */}
-          <div className="md:hidden w-full -mt-2 mb-2">
-            <div className="flex overflow-x-auto gap-1 pb-2">
-              {navItems.map(({ id, label, icon: Icon, badge }) => (
-                <button
-                  key={id}
-                  onClick={() => setActiveSection(id)}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    activeSection === id ? "bg-blue-600 text-white" : "bg-white text-gray-600 border border-gray-200"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                  {badge != null && badge > 0 && (
-                    <span className="bg-amber-500 text-white text-xs rounded-full px-1 leading-tight">{badge}</span>
-                  )}
-                </button>
-              ))}
+          <main className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/50">
+            <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              {activeSection === "dashboard" && <DashboardSection setSection={setActiveSection} />}
+              {activeSection === "bookings" && <BookingsSection />}
+              {activeSection === "equipment" && <EquipmentSection />}
+              {activeSection === "facilities" && <FacilitiesSection />}
+              {activeSection === "users" && <UsersSection />}
             </div>
-          </div>
-
-          {/* Content */}
-          <main className="flex-1 min-w-0">
-            {activeSection === "dashboard"  && <DashboardSection setSection={setActiveSection} />}
-            {activeSection === "bookings"   && <BookingsSection />}
-            {activeSection === "equipment"  && <EquipmentSection />}
-            {activeSection === "facilities" && <FacilitiesSection />}
-            {activeSection === "users"      && <UsersSection />}
           </main>
         </div>
       </div>
-    </div>
+      <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
+      <LogoutModal
+        open={isLogoutOpen}
+        onOpenChange={setIsLogoutOpen}
+        onConfirm={handleLogout}
+      />
+    </div >
   );
 }

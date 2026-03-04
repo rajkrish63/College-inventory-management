@@ -30,7 +30,7 @@ export function EquipmentPage() {
     <div>
       {/* Header */}
       <section className="bg-gradient-to-br from-blue-50 to-cyan-50 py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
+        <div className="max-w-8xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Equipment Catalog
           </h1>
@@ -42,7 +42,7 @@ export function EquipmentPage() {
 
       {/* Search and Filters */}
       <section className="py-8 px-4 sm:px-6 lg:px-8 bg-white border-b">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-8xl mx-auto">
           <div className="grid md:grid-cols-3 gap-4">
             {/* Search */}
             <div className="md:col-span-1">
@@ -98,7 +98,7 @@ export function EquipmentPage() {
 
       {/* Equipment Grid */}
       <section className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-8xl mx-auto">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredEquipment.map((equipment) => (
               <Card key={equipment.id} className="hover:shadow-lg transition-shadow">

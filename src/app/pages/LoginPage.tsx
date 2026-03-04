@@ -1,3 +1,4 @@
+import { AuthLayout } from "../components/AuthLayout";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Microscope, Mail, Lock, Eye, EyeOff, Shield, LogIn } from "lucide-react";
@@ -48,185 +49,134 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center px-4 py-16">
-      <div className="w-full max-w-4xl grid lg:grid-cols-2 gap-8 items-center">
+    <AuthLayout>
+      <AuthLayout.Hero
+        title="Welcome Back to the Research Hub"
+        subtitle="Access world-class research facilities, manage equipment bookings, and collaborate with researchers worldwide."
+        features={[
+          { icon: "🔬", text: "50+ Research Facilities" },
+          { icon: "⚗️", text: "200+ Equipment Units" },
+          { icon: "👥", text: "1,000+ Active Researchers" },
+          { icon: "📅", text: "24/7 Access Available" },
+        ]}
+      />
 
-        {/* Left: Branding */}
-        <div className="hidden lg:block space-y-8 text-white">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center shadow-lg">
-              <Microscope className="h-8 w-8 text-white" />
+      <AuthLayout.Content>
+        <div className="w-full max-w-md mx-auto space-y-8">
+          <div className="text-center space-y-2">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900">Sign In</h2>
+            <p className="text-gray-500">Access your researcher dashboard</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={fillAdmin}
+              className="text-xs gap-1.5 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300 transition-all rounded-xl"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              Fill Admin
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={fillDemo}
+              className="text-xs gap-1.5 border-gray-200 text-gray-600 hover:bg-gray-100 hover:border-gray-300 transition-all rounded-xl"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              Fill Demo
+            </Button>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-100" />
             </div>
-            <div>
-              <div className="text-2xl font-bold">R&D Center</div>
-              <div className="text-blue-300 text-sm">Research & Development Portal</div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-3 text-gray-400 font-bold tracking-widest">or secure login</span>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h1 className="text-4xl font-bold leading-tight">
-              Welcome Back to the<br />
-              <span className="text-cyan-400">Research Hub</span>
-            </h1>
-            <p className="text-slate-300 text-lg leading-relaxed">
-              Access world-class research facilities, manage equipment bookings, and collaborate with researchers worldwide.
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-xl px-4 py-3 animate-in fade-in slide-in-from-top-1">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Email Address</Label>
+              <div className="relative group">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                  <Mail className="h-full w-full" />
+                </div>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@university.edu"
+                  className="pl-11 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl transition-all"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Password</Label>
+              <div className="relative group">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                  <Lock className="h-full w-full" />
+                </div>
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="pl-11 pr-11 h-12 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl transition-all"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 text-md font-bold transition-all hover:scale-[1.01] active:scale-95 border border-blue-700/50" disabled={loading}>
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Authenticating...
+                </span>
+              ) : (
+                "Sign In"
+              )}
+            </Button>
+          </form>
+
+          <div className="text-center pt-4">
+            <p className="text-sm text-gray-500 font-medium">
+              New to the portal?{" "}
+              <Link to="/register" className="text-blue-600 hover:text-blue-700 font-bold hover:underline underline-offset-4">
+                Create an account
+              </Link>
             </p>
-          </div>
-
-          <div className="space-y-3">
-            {[
-              { icon: "🔬", text: "50+ Research Facilities" },
-              { icon: "⚗️", text: "200+ Equipment Units" },
-              { icon: "👥", text: "1,000+ Active Researchers" },
-              { icon: "📅", text: "24/7 Access Available" },
-            ].map((item) => (
-              <div key={item.text} className="flex items-center gap-3 text-slate-300">
-                <span className="text-xl">{item.icon}</span>
-                <span>{item.text}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Demo credentials hint */}
-          <div className="bg-white/10 backdrop-blur rounded-xl p-4 border border-white/20 space-y-2">
-            <p className="text-sm font-medium text-cyan-300">Quick Access Credentials</p>
-            <div className="space-y-1 text-xs text-slate-300">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Admin:</span>
-                <span className="font-mono">admin@rdcenter.edu / admin123</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Demo User:</span>
-                <span className="font-mono">s.chen@mit.edu / pass1234</span>
-              </div>
+            <div className="mt-6">
+              <Link to="/" className="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1">
+                View Public Facilities
+              </Link>
             </div>
           </div>
         </div>
-
-        {/* Right: Login Form */}
-        <div>
-          <Card className="shadow-2xl border-0">
-            <CardHeader className="text-center pb-4">
-              <div className="lg:hidden flex justify-center mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-xl flex items-center justify-center">
-                  <Microscope className="h-7 w-7 text-white" />
-                </div>
-              </div>
-              <CardTitle className="text-2xl">Sign In</CardTitle>
-              <CardDescription>Enter your credentials to access the portal</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {/* Quick fill buttons */}
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={fillAdmin}
-                  className="text-xs gap-1.5 border-slate-800 text-slate-700"
-                >
-                  <Shield className="h-3.5 w-3.5" />
-                  Fill Admin
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={fillDemo}
-                  className="text-xs gap-1.5"
-                >
-                  <LogIn className="h-3.5 w-3.5" />
-                  Fill Demo User
-                </Button>
-              </div>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-2 text-gray-400">or enter manually</span>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-                    {error}
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@university.edu"
-                      className="pl-10"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Your password"
-                      className="pl-10 pr-10"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                      </svg>
-                      Signing In...
-                    </span>
-                  ) : (
-                    "Sign In"
-                  )}
-                </Button>
-              </form>
-
-              <div className="text-center space-y-3">
-                <p className="text-sm text-gray-500">
-                  Don't have an account?{" "}
-                  <Link to="/register" className="text-blue-600 hover:underline font-medium">
-                    Create one
-                  </Link>
-                </p>
-                <p className="text-sm text-gray-500">
-                  <Link to="/" className="text-gray-400 hover:text-gray-600">
-                    ← Continue without signing in
-                  </Link>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+      </AuthLayout.Content>
+    </AuthLayout>
   );
 }

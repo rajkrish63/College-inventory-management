@@ -3,7 +3,7 @@ import { Mail, Phone, MapPin, Microscope } from "lucide-react";
 export function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8 mt-auto">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-8xl mx-auto">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           {/* Brand Info */}
           <div className="col-span-1">

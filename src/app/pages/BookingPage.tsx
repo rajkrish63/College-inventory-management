@@ -79,7 +79,7 @@ export function BookingPage() {
     <div>
       {/* Header */}
       <section className="bg-gradient-to-br from-blue-50 to-cyan-50 py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
+        <div className="max-w-8xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Request Facility Access</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Submit a request to access our research facilities and equipment. We'll review your application and get back to you shortly.
@@ -226,7 +226,7 @@ export function BookingPage() {
 
       {/* Guidelines */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-8xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Access Guidelines</h2>
           <div className="grid md:grid-cols-2 gap-6">
             <Card>

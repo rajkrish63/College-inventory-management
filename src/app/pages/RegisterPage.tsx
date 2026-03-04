@@ -1,3 +1,4 @@
+import { AuthLayout } from "../components/AuthLayout";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
@@ -79,214 +80,203 @@ export function RegisterPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center px-4 py-16 bg-gray-50">
-        <Card className="max-w-md w-full text-center shadow-xl">
-          <CardHeader className="pb-2">
-            <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-10 w-10 text-green-600" />
+      <AuthLayout>
+        <AuthLayout.Hero
+          title="Registration Successful!"
+          subtitle={`Welcome, ${form.firstName}! Your account has been created and is now pending admin approval.`}
+          features={[
+            { icon: "✅", text: "Account under review" },
+            { icon: "📧", text: "Confirmation email sent" },
+            { icon: "🕒", text: "24-hour approval window" },
+          ]}
+        />
+        <AuthLayout.Content>
+          <div className="max-w-md w-full mx-auto text-center space-y-8">
+            <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center shadow-inner">
+              <CheckCircle className="h-12 w-12 text-green-600" />
             </div>
-            <CardTitle className="text-2xl">Registration Successful!</CardTitle>
-            <CardDescription className="text-base mt-1">
-              Welcome, {form.firstName}! Your account is pending admin approval.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-4">
-            <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-800 text-left space-y-1">
-              <p className="font-medium">What happens next?</p>
-              <ul className="list-disc list-inside text-blue-700 space-y-0.5">
-                <li>Admin reviews your request within 24 hours</li>
-                <li>Confirmation sent to <strong>{form.email}</strong></li>
-                <li>Access granted upon approval</li>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold text-gray-900">Next Steps</h2>
+              <p className="text-gray-500">Access world-class facilities in no time</p>
+            </div>
+            <div className="bg-blue-50/50 rounded-2xl p-6 text-left border border-blue-100 space-y-4">
+              <p className="font-bold text-blue-900">What happens now?</p>
+              <ul className="space-y-3">
+                {[
+                  "Admin reviews your credentials",
+                  "Validation of institutional affiliation",
+                  "Final approval for equipment booking",
+                ].map((step, i) => (
+                  <li key={i} className="flex items-center gap-3 text-sm text-blue-800">
+                    <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">{i + 1}</div>
+                    {step}
+                  </li>
+                ))}
               </ul>
             </div>
-            <Button className="w-full" onClick={() => navigate("/login")}>Sign In</Button>
-            <Button variant="outline" className="w-full" onClick={() => navigate("/")}>Back to Home</Button>
-          </CardContent>
-        </Card>
-      </div>
+            <div className="space-y-3">
+              <Button className="w-full h-12 rounded-xl bg-blue-600 font-bold transition-all hover:scale-[1.01] active:scale-95 border border-blue-700/50" onClick={() => navigate("/login")}>Continue to Sign In</Button>
+              <Button variant="ghost" className="w-full font-bold text-gray-500 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all rounded-xl" onClick={() => navigate("/")}>Go to Home</Button>
+            </div>
+          </div>
+        </AuthLayout.Content>
+      </AuthLayout>
     );
   }
 
   const field = (id: keyof typeof form, label: string, type = "text", placeholder = "") => (
     <div className="space-y-1.5">
-      <Label htmlFor={id}>{label} <span className="text-red-500">*</span></Label>
+      <Label htmlFor={id} className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">{label} <span className="text-red-500">*</span></Label>
       <Input
         id={id} type={type} placeholder={placeholder}
         value={form[id]}
         onChange={(e) => setForm({ ...form, [id]: e.target.value })}
-        className={errors[id] ? "border-red-400" : ""}
+        className={`h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl transition-all ${errors[id] ? "border-red-400 bg-red-50/30" : ""}`}
       />
-      {errors[id] && <p className="text-xs text-red-500">{errors[id]}</p>}
+      {errors[id] && <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight ml-1">{errors[id]}</p>}
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <section className="bg-gradient-to-br from-blue-700 to-cyan-600 py-14 px-4 sm:px-6 lg:px-8 text-white">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-              <Microscope className="h-8 w-8 text-white" />
-            </div>
+    <AuthLayout>
+      <AuthLayout.Hero
+        title="Create Your Researcher Account"
+        subtitle="Join the R&D Center to access world-class research facilities and collaborate with global scientists."
+        features={[
+          { icon: "🔬", text: "Advanced Lab Access" },
+          { icon: "⚡", text: "Fast Equipment Booking" },
+          { icon: "🧬", text: "Global Collaboration" },
+        ]}
+      />
+
+      <AuthLayout.Content>
+        <div className="w-full max-w-lg mx-auto space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">Register</h2>
+            <p className="text-gray-500 font-medium">Step into the future of research</p>
           </div>
-          <h1 className="text-4xl font-bold mb-2">Create Your Account</h1>
-          <p className="text-blue-100 text-lg">
-            Join the R&D Center to access world-class research facilities and equipment.
-          </p>
-          <p className="text-blue-200 text-sm mt-2">
-            Already have an account?{" "}
-            <Link to="/login" className="text-white underline font-medium hover:text-blue-100">Sign In</Link>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {serverError && (
+              <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-xl px-4 py-3 animate-in fade-in slide-in-from-top-1 font-medium">
+                {serverError}
+              </div>
+            )}
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              {field("firstName", "First Name", "text", "John")}
+              {field("lastName", "Last Name", "text", "Doe")}
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Email <span className="text-red-500">*</span></Label>
+                <div className="relative group">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Input
+                    id="email" type="email" placeholder="john.doe@edu"
+                    className={`pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl transition-all ${errors.email ? "border-red-400 bg-red-50/30" : ""}`}
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  />
+                </div>
+                {errors.email && <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight ml-1">{errors.email}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Phone</Label>
+                <div className="relative group">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Input id="phone" type="tel" placeholder="+1..." className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl transition-all"
+                    value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Password <span className="text-red-500">*</span></Label>
+                <div className="relative group">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Input id="password" type={showPass ? "text" : "password"} placeholder="Min 8 chars"
+                    className={`pl-10 pr-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl transition-all ${errors.password ? "border-red-400 bg-red-50/30" : ""}`}
+                    value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                  <button type="button" onClick={() => setShowPass(!showPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                    {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.password && <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight ml-1">{errors.password}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="confirmPassword" className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Confirm <span className="text-red-500">*</span></Label>
+                <div className="relative group">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                  <Input id="confirmPassword" type={showConfirm ? "text" : "password"} placeholder="Repeat"
+                    className={`pl-10 pr-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl transition-all ${errors.confirmPassword ? "border-red-400 bg-red-50/30" : ""}`}
+                    value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {errors.confirmPassword && <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight ml-1">{errors.confirmPassword}</p>}
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              {field("institution", "Institution", "text", "e.g. MIT")}
+              <div className="space-y-1.5">
+                <Label htmlFor="role" className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Role <span className="text-red-500">*</span></Label>
+                <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
+                  <SelectTrigger id="role" className={`h-11 bg-gray-50/50 border-gray-200 focus:bg-white rounded-xl transition-all ${errors.role ? "border-red-400 bg-red-50/30" : ""}`}>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-gray-200 shadow-xl overflow-hidden">
+                    {roles.map((r) => <SelectItem key={r} value={r} className="focus:bg-blue-50 focus:text-blue-700">{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {errors.role && <p className="text-[10px] font-bold text-red-500 uppercase tracking-tight ml-1">{errors.role}</p>}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-1 flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-blue-600" /> Research Interests
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {researchInterestsList.map((interest) => (
+                  <Badge
+                    key={interest}
+                    variant={interests.includes(interest) ? "default" : "outline"}
+                    className={`cursor-pointer px-3 py-2 rounded-lg transition-all border-gray-200 ${interests.includes(interest)
+                      ? "bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20"
+                      : "hover:bg-blue-50 hover:border-blue-400 text-gray-600"
+                      }`}
+                    onClick={() => toggleInterest(interest)}
+                  >
+                    {interest}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            <Button type="submit" size="lg" className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 font-bold transition-all hover:scale-[1.01] active:scale-95 border border-blue-700/50">
+              Complete Registration
+            </Button>
+
+            <p className="text-[10px] text-gray-400 text-center font-medium leading-relaxed px-4">
+              By registering, you agree to Mahendra R&D Hub's{" "}
+              <a href="#" className="text-blue-600 font-bold hover:underline">Terms of Use</a> and{" "}
+              <a href="#" className="text-blue-600 font-bold hover:underline">Safety Policies</a>.
+            </p>
+          </form>
+
+          <p className="text-sm text-gray-500 text-center font-medium pt-2 border-t border-gray-100 italic">
+            Already a member?{" "}
+            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-bold hover:underline underline-offset-4">Sign In</Link>
           </p>
         </div>
-      </section>
-
-      {/* Form */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mx-auto">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>Researcher Registration</CardTitle>
-              <CardDescription>Fields marked <span className="text-red-500">*</span> are required.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-8">
-                {serverError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-                    {serverError}
-                  </div>
-                )}
-
-                {/* Personal Info */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2 pb-1 border-b">
-                    <User className="h-4 w-4 text-blue-600" /> Personal Information
-                  </h3>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {field("firstName", "First Name", "text", "John")}
-                    {field("lastName", "Last Name", "text", "Doe")}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="email" type="email" placeholder="john.doe@university.edu"
-                        className={`pl-10 ${errors.email ? "border-red-400" : ""}`}
-                        value={form.email}
-                        onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      />
-                    </div>
-                    {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone">Phone Number <span className="text-gray-400 text-xs">(optional)</span></Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input id="phone" type="tel" placeholder="+1 (555) 000-0000" className="pl-10"
-                        value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2 pb-1 border-b">
-                    <Lock className="h-4 w-4 text-blue-600" /> Security
-                  </h3>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
-                      <div className="relative">
-                        <Input id="password" type={showPass ? "text" : "password"} placeholder="Min. 8 characters"
-                          className={`pr-10 ${errors.password ? "border-red-400" : ""}`}
-                          value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-                        <button type="button" onClick={() => setShowPass(!showPass)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                          {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="confirmPassword">Confirm Password <span className="text-red-500">*</span></Label>
-                      <div className="relative">
-                        <Input id="confirmPassword" type={showConfirm ? "text" : "password"} placeholder="Repeat password"
-                          className={`pr-10 ${errors.confirmPassword ? "border-red-400" : ""}`}
-                          value={form.confirmPassword} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
-                        <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                          {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      {errors.confirmPassword && <p className="text-xs text-red-500">{errors.confirmPassword}</p>}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Affiliation */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2 pb-1 border-b">
-                    <Building2 className="h-4 w-4 text-blue-600" /> Affiliation
-                  </h3>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {field("institution", "Institution", "text", "e.g., MIT, Stanford")}
-                    {field("department", "Department", "text", "e.g., Chemistry")}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="role">Role / Position <span className="text-red-500">*</span></Label>
-                    <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
-                      <SelectTrigger id="role" className={errors.role ? "border-red-400" : ""}>
-                        <SelectValue placeholder="Select your role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {errors.role && <p className="text-xs text-red-500">{errors.role}</p>}
-                  </div>
-                </div>
-
-                {/* Research Interests */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2 pb-1 border-b">
-                    <GraduationCap className="h-4 w-4 text-blue-600" />
-                    Research Interests{" "}
-                    <span className="text-sm font-normal text-gray-400">(optional)</span>
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {researchInterestsList.map((interest) => (
-                      <Badge
-                        key={interest}
-                        variant={interests.includes(interest) ? "default" : "outline"}
-                        className={`cursor-pointer px-3 py-1.5 transition-all ${
-                          interests.includes(interest)
-                            ? "bg-blue-600 hover:bg-blue-700"
-                            : "hover:bg-blue-50 hover:border-blue-400"
-                        }`}
-                        onClick={() => toggleInterest(interest)}
-                      >
-                        {interest}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Terms */}
-                <p className="text-xs text-gray-400">
-                  By registering, you agree to the R&D Center's{" "}
-                  <a href="#" className="text-blue-600 underline">Terms of Use</a> and{" "}
-                  <a href="#" className="text-blue-600 underline">Safety Policies</a>.
-                </p>
-
-                <Button type="submit" size="lg" className="w-full">
-                  Create Account
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-    </div>
+      </AuthLayout.Content>
+    </AuthLayout>
   );
 }
