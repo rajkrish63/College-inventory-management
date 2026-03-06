@@ -17,7 +17,6 @@ import {
 } from "../../components/ui/select";
 import { useAppContext } from "../../context/AppContext";
 import type { Booking, Equipment, Facility, AppUser } from "../../context/AppContext";
-import { SettingsModal } from "../../components/SettingsModal";
 import { LogoutModal } from "../../components/LogoutModal";
 
 type Section = "dashboard" | "bookings" | "equipment" | "facilities" | "users";
@@ -492,8 +491,6 @@ function UsersSection() {
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden md:table-cell">Role</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden lg:table-cell">Institution</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden sm:table-cell">Joined</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -509,26 +506,6 @@ function UsersSection() {
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500">{u.institution}</td>
                     <td className="py-3 px-4 hidden sm:table-cell text-xs text-gray-500">{u.joinedAt}</td>
-                    <td className="py-3 px-4"><StatusPill status={u.status} /></td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center justify-end gap-1">
-                        {u.status === "Pending" && (
-                          <Button size="sm" variant="ghost" className="h-7 px-2 text-green-600 hover:bg-green-50 text-xs" onClick={() => updateUserStatus(u.id, "Active")}>
-                            <CheckCircle className="h-3.5 w-3.5 mr-1" />Activate
-                          </Button>
-                        )}
-                        {u.status === "Active" && (
-                          <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-500 hover:bg-gray-100 text-xs" onClick={() => updateUserStatus(u.id, "Inactive")}>
-                            Deactivate
-                          </Button>
-                        )}
-                        {u.status === "Inactive" && (
-                          <Button size="sm" variant="ghost" className="h-7 px-2 text-green-600 hover:bg-green-50 text-xs" onClick={() => updateUserStatus(u.id, "Active")}>
-                            <CheckCircle className="h-3.5 w-3.5 mr-1" />Activate
-                          </Button>
-                        )}
-                      </div>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -642,7 +619,6 @@ export function AdminPage() {
           </main>
         </div>
       </div>
-      <SettingsModal open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />
       <LogoutModal
         open={isLogoutOpen}
         onOpenChange={setIsLogoutOpen}

@@ -4,26 +4,31 @@ import { HomePage } from "./pages/HomePage";
 import { FacilitiesPage } from "./pages/FacilitiesPage";
 import { EquipmentPage } from "./pages/EquipmentPage";
 import { BookingPage } from "./pages/BookingPage";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
+import { BookingsPage } from "./pages/BookingsPage";
+import { AuthPage } from "./pages/AuthPage";
 import { AdminPage } from "./pages/admin/AdminPage";
 import { AddEquipmentPage } from "./pages/admin/AddEquipmentPage";
 import { AddFacilityPage } from "./pages/admin/AddFacilityPage";
+import { SettingsPage } from "./pages/SettingsPage";
 
 export const router = createBrowserRouter([
+  // Auth pages — standalone, no sidebar/navbar
+  { path: "/login", Component: AuthPage },
+  { path: "/register", Component: AuthPage },
+  // All other pages — wrapped in Layout
   {
     path: "/",
     Component: Layout,
     children: [
       { index: true, Component: HomePage },
-      { path: "facilities",    Component: FacilitiesPage },
-      { path: "equipment",     Component: EquipmentPage },
-      { path: "booking",       Component: BookingPage },
-      { path: "login",         Component: LoginPage },
-      { path: "register",      Component: RegisterPage },
-      { path: "admin",         Component: AdminPage },
+      { path: "facilities", Component: FacilitiesPage },
+      { path: "equipment", Component: EquipmentPage },
+      { path: "booking", Component: BookingPage },
+      { path: "my-bookings", Component: BookingsPage },
+      { path: "settings", Component: SettingsPage },
+      { path: "admin", Component: AdminPage },
       { path: "admin/add-equipment", Component: AddEquipmentPage },
-      { path: "admin/add-facility",  Component: AddFacilityPage },
+      { path: "admin/add-facility", Component: AddFacilityPage },
     ],
   },
 ]);

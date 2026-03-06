@@ -54,6 +54,7 @@ export interface AppUser {
   phone: string;
   status: "Active" | "Pending" | "Inactive";
   joinedAt: string;
+  profilePic?: string;
 }
 
 export interface AuthUser {
@@ -61,27 +62,32 @@ export interface AuthUser {
   name: string;
   email: string;
   role: "admin" | "researcher";
+  profilePic?: string;
 }
 
 // ── Initial Data ─────────────────────────────────────────────────────────────
 
 const initialEquipment: Equipment[] = [
-  { id: 1, name: "Gas Chromatography-Mass Spectrometry", category: "Analytical Chemistry", manufacturer: "Agilent", model: "7890B GC-MS", location: "Chemistry Lab - Room 101", status: "Available", description: "High-performance GC-MS system for compound identification and quantification.", specifications: ["EI/CI sources", "Triple-axis detector", "0.1-1050 m/z range"], applications: ["Metabolomics", "Environmental analysis", "Food safety"] },
-  { id: 2, name: "Scanning Electron Microscope", category: "Materials Characterization", manufacturer: "JEOL", model: "JSM-7800F", location: "Materials Lab - Room 205", status: "In Use", description: "Field emission SEM with high resolution imaging and EDX capabilities.", specifications: ["1.0 nm resolution", "30 kV max voltage", "EDX detector"], applications: ["Surface morphology", "Elemental analysis", "Nanostructure imaging"] },
-  { id: 3, name: "Real-Time PCR System", category: "Molecular Biology", manufacturer: "Bio-Rad", model: "CFX384 Touch", location: "Biotech Suite - Room 150", status: "Available", description: "384-well real-time PCR system for gene expression and genotyping.", specifications: ["384-well format", "6 channels", "Peltier thermal cycler"], applications: ["Gene expression", "SNP genotyping", "Copy number variation"] },
-  { id: 4, name: "X-Ray Diffractometer", category: "Materials Characterization", manufacturer: "Bruker", model: "D8 Advance", location: "Materials Lab - Room 210", status: "Available", description: "Powder X-ray diffraction system for crystal structure analysis.", specifications: ["Cu Kα radiation", "Theta-theta geometry", "LynxEye detector"], applications: ["Phase identification", "Crystallinity analysis", "Lattice parameters"] },
-  { id: 5, name: "Flow Cytometer", category: "Cell Biology", manufacturer: "BD Biosciences", model: "FACSAria III", location: "Biotech Suite - Room 155", status: "Available", description: "High-speed cell sorter with multi-parameter analysis capabilities.", specifications: ["5 lasers", "18 parameters", "BSL-2 certified"], applications: ["Cell sorting", "Immunophenotyping", "Cell cycle analysis"] },
-  { id: 6, name: "Nuclear Magnetic Resonance Spectrometer", category: "Analytical Chemistry", manufacturer: "Bruker", model: "Avance Neo 600", location: "NMR Facility - Room 120", status: "Maintenance", description: "600 MHz NMR for structural elucidation and molecular dynamics.", specifications: ["600 MHz", "Cryoprobe", "Automation capability"], applications: ["Structure determination", "Reaction monitoring", "Metabolomics"] },
-  { id: 7, name: "Atomic Force Microscope", category: "Materials Characterization", manufacturer: "Park Systems", model: "NX10", location: "Clean Room - Room 300", status: "Available", description: "High-resolution AFM for nanoscale surface imaging and analysis.", specifications: ["0.5 nm lateral resolution", "Multiple modes", "Environmental control"], applications: ["Surface roughness", "Nanoparticle imaging", "Mechanical properties"] },
-  { id: 8, name: "High-Performance Liquid Chromatography", category: "Analytical Chemistry", manufacturer: "Waters", model: "Acquity UPLC H-Class", location: "Chemistry Lab - Room 105", status: "Available", description: "Ultra-performance liquid chromatography with PDA detector.", specifications: ["UPLC technology", "PDA detector", "Quaternary pump"], applications: ["Pharmaceuticals", "Natural products", "Quality control"] },
-  { id: 9, name: "Confocal Laser Scanning Microscope", category: "Cell Biology", manufacturer: "Leica", model: "TCS SP8", location: "Imaging Center - Room 180", status: "In Use", description: "Advanced confocal system for live cell imaging and 3D reconstruction.", specifications: ["4 laser lines", "Spectral detection", "Environmental chamber"], applications: ["Live cell imaging", "Co-localization", "3D reconstruction"] },
-  { id: 10, name: "Thermal Analysis System", category: "Materials Characterization", manufacturer: "TA Instruments", model: "Discovery DSC 2500", location: "Materials Lab - Room 215", status: "Available", description: "Differential scanning calorimetry for thermal property analysis.", specifications: ["-90°C to 550°C", "Tzero technology", "Auto-sampler"], applications: ["Glass transition", "Melting point", "Thermal stability"] },
-  { id: 11, name: "Spectrophotometer", category: "Analytical Chemistry", manufacturer: "PerkinElmer", model: "Lambda 1050+", location: "Chemistry Lab - Room 110", status: "Available", description: "UV-Vis-NIR spectrophotometer for optical characterization.", specifications: ["175-3300 nm range", "Double beam", "InGaAs detector"], applications: ["Absorbance", "Transmittance", "Optical properties"] },
-  { id: 12, name: "Electrochemical Workstation", category: "Electrochemistry", manufacturer: "Metrohm", model: "Autolab PGSTAT302N", location: "Chemistry Lab - Room 115", status: "Available", description: "Multi-channel potentiostat/galvanostat for electrochemical analysis.", specifications: ["±10V compliance", "2.5 A current", "FRA module"], applications: ["Cyclic voltammetry", "EIS", "Battery testing"] },
+  { id: 1, name: "Gas Chromatography-Mass Spectrometry", category: "GC-MS", manufacturer: "Agilent", model: "7890B GC-MS", location: "Advanced Chemistry Laboratory - Room 101", status: "Available", description: "High-performance GC-MS system for compound identification and quantification.", specifications: ["EI/CI sources", "Triple-axis detector", "0.1-1050 m/z range"], applications: ["Metabolomics", "Environmental analysis", "Food safety"] },
+  { id: 2, name: "Scanning Electron Microscope", category: "Electron Microscope", manufacturer: "JEOL", model: "JSM-7800F", location: "Clean Room Facility - Room 300", status: "In Use", description: "Field emission SEM with high resolution imaging and EDX capabilities.", specifications: ["1.0 nm resolution", "30 kV max voltage", "EDX detector"], applications: ["Surface morphology", "Elemental analysis", "Nanostructure imaging"] },
+  { id: 3, name: "Real-Time PCR System", category: "PCR Machines", manufacturer: "Bio-Rad", model: "CFX384 Touch", location: "Molecular Biology Suite - Room 150", status: "Available", description: "384-well real-time PCR system for gene expression and genotyping.", specifications: ["384-well format", "6 channels", "Peltier thermal cycler"], applications: ["Gene expression", "SNP genotyping", "Copy number variation"] },
+  { id: 4, name: "X-Ray Diffractometer", category: "XRD", manufacturer: "Bruker", model: "D8 Advance", location: "Materials Characterization Center - Room 400", status: "Available", description: "Powder X-ray diffraction system for crystal structure analysis.", specifications: ["Cu Kα radiation", "Theta-theta geometry", "LynxEye detector"], applications: ["Phase identification", "Crystallinity analysis", "Lattice parameters"] },
+  { id: 5, name: "Flow Cytometer", category: "Flow Cytometer", manufacturer: "BD Biosciences", model: "FACSAria III", location: "Molecular Biology Suite - Room 155", status: "Available", description: "High-speed cell sorter with multi-parameter analysis capabilities.", specifications: ["5 lasers", "18 parameters", "BSL-2 certified"], applications: ["Cell sorting", "Immunophenotyping", "Cell cycle analysis"] },
+  { id: 6, name: "Nuclear Magnetic Resonance Spectrometer", category: "NMR Spectrometer", manufacturer: "Bruker", model: "Avance Neo 600", location: "Advanced Chemistry Laboratory - Room 120", status: "Maintenance", description: "600 MHz NMR for structural elucidation and molecular dynamics.", specifications: ["600 MHz", "Cryoprobe", "Automation capability"], applications: ["Structure determination", "Reaction monitoring", "Metabolomics"] },
+  { id: 7, name: "Atomic Force Microscope", category: "AFM", manufacturer: "Park Systems", model: "NX10", location: "Materials Characterization Center - Room 410", status: "Available", description: "High-resolution AFM for nanoscale surface imaging and analysis.", specifications: ["0.5 nm lateral resolution", "Multiple modes", "Environmental control"], applications: ["Surface roughness", "Nanoparticle imaging", "Mechanical properties"] },
+  { id: 8, name: "High-Performance Liquid Chromatography", category: "HPLC", manufacturer: "Waters", model: "Acquity UPLC H-Class", location: "Advanced Chemistry Laboratory - Room 105", status: "Available", description: "Ultra-performance liquid chromatography with PDA detector.", specifications: ["UPLC technology", "PDA detector", "Quaternary pump"], applications: ["Pharmaceuticals", "Natural products", "Quality control"] },
+  { id: 9, name: "Confocal Laser Scanning Microscope", category: "Cell Culture Facility", manufacturer: "Leica", model: "TCS SP8", location: "Molecular Biology Suite - Room 180", status: "In Use", description: "Advanced confocal system for live cell imaging and 3D reconstruction.", specifications: ["4 laser lines", "Spectral detection", "Environmental chamber"], applications: ["Live cell imaging", "Co-localization", "3D reconstruction"] },
+  { id: 10, name: "Thermal Analysis System", category: "Tensile Tester", manufacturer: "TA Instruments", model: "Discovery DSC 2500", location: "Materials Characterization Center - Room 415", status: "Available", description: "Differential scanning calorimetry for thermal property analysis.", specifications: ["-90°C to 550°C", "Tzero technology", "Auto-sampler"], applications: ["Glass transition", "Melting point", "Thermal stability"] },
+  { id: 11, name: "UV-Vis-NIR Spectrophotometer", category: "Spectroscopy", manufacturer: "PerkinElmer", model: "Lambda 1050+", location: "Advanced Chemistry Laboratory - Room 110", status: "Available", description: "UV-Vis-NIR spectrophotometer for optical characterization across a wide wavelength range.", specifications: ["175-3300 nm range", "Double beam", "InGaAs detector"], applications: ["Absorbance", "Transmittance", "Optical properties"] },
+  { id: 12, name: "Potentiostat/Galvanostat", category: "HPLC", manufacturer: "Metrohm", model: "Autolab PGSTAT302N", location: "Advanced Chemistry Laboratory - Room 115", status: "Available", description: "Multi-channel potentiostat/galvanostat for electrochemical analysis.", specifications: ["±10V compliance", "2.5 A current", "FRA module"], applications: ["Cyclic voltammetry", "EIS", "Battery testing"] },
+  { id: 13, name: "Digital Oscilloscope", category: "Oscilloscopes", manufacturer: "Keysight", model: "Infiniium MXR-Series", location: "Electronics & Instrumentation Lab - Room 200", status: "Available", description: "High-bandwidth digital oscilloscope for signal analysis and troubleshooting.", specifications: ["6 GHz bandwidth", "16 GS/s sample rate", "8 analog channels"], applications: ["Signal integrity", "Power analysis", "Protocol decoding"] },
+  { id: 14, name: "Arbitrary Waveform Generator", category: "Signal Generators", manufacturer: "Tektronix", model: "AWG5200", location: "Electronics & Instrumentation Lab - Room 202", status: "Available", description: "High-fidelity signal generator for creating complex electronic signals.", specifications: ["10 GS/s sample rate", "16-bit resolution", "Waveform memory"], applications: ["Quantum computing", "Radar testing", "RF signal generation"] },
+  { id: 15, name: "GPU Cluster Node", category: "GPU Cluster", manufacturer: "NVIDIA", model: "DGX H100", location: "High-Performance Computing Lab - Room 500", status: "Available", description: "High-performance compute node for AI and deep learning research.", specifications: ["8x H100 GPUs", "640GB total GPU memory", "InfiniBand networking"], applications: ["Deep learning training", "Molecular dynamics", "Climate modeling"] },
+  { id: 16, name: "Transmission Electron Microscope", category: "TEM", manufacturer: "Thermo Scientific", model: "Talos F200i", location: "Materials Characterization Center - Room 405", status: "Available", description: "Scanning transmission electron microscope for atomic-scale imaging.", specifications: ["200 kV voltage", "Ceta camera", "EDS capability"], applications: ["Crystal structure", "Nanomaterial analysis", "Biological imaging"] },
 ];
 
 const initialFacilities: Facility[] = [
-  { id: 1, name: "Advanced Chemistry Laboratory", category: "Chemistry", description: "Fully equipped analytical and synthetic chemistry lab with fume hoods, spectroscopy equipment, and chemical storage.", capacity: "20 researchers", availability: "Available", features: ["GC-MS", "HPLC", "NMR Spectrometer", "Fume Hoods"], room: "Building A, Room 101-110", image: "https://images.unsplash.com/photo-1707944746058-4da338d0f827?w=800&q=80" },
+  { id: 1, name: "Advanced Chemistry Laboratory", category: "Chemistry", description: "Fully equipped analytical and synthetic chemistry lab with fume hoods, spectroscopy equipment, and chemical storage.", capacity: "20 researchers", availability: "Available", features: ["GC-MS", "HPLC", "NMR Spectrometer", "Fume Hoods", "Spectroscopy"], room: "Building A, Room 101-110", image: "https://images.unsplash.com/photo-1707944746058-4da338d0f827?w=800&q=80" },
   { id: 2, name: "Molecular Biology Suite", category: "Biotechnology", description: "Sterile environment for cell culture, genetic analysis, and molecular biology research with BSL-2 certification.", capacity: "15 researchers", availability: "Limited", features: ["PCR Machines", "Cell Culture Facility", "Flow Cytometer", "DNA Sequencer"], room: "Building B, Room 150-160", image: "https://images.unsplash.com/photo-1732400333616-8efa4f385a03?w=800&q=80" },
   { id: 3, name: "Clean Room Facility", category: "Materials Science", description: "ISO Class 7 clean room for nanofabrication, semiconductor processing, and sensitive material preparation.", capacity: "8 researchers", availability: "Available", features: ["Electron Microscope", "Spin Coater", "Plasma Etcher", "Controlled Environment"], room: "Building C, Room 300", image: "https://images.unsplash.com/photo-1765830403209-a5eceac4c198?w=800&q=80" },
   { id: 4, name: "Electronics & Instrumentation Lab", category: "Electronics", description: "Advanced electronics workstations for circuit design, testing, and microcontroller development.", capacity: "12 researchers", availability: "Available", features: ["Oscilloscopes", "Signal Generators", "PCB Fabrication", "3D Printer"], room: "Building A, Room 200-210", image: "https://images.unsplash.com/photo-1759866042499-d0b3e9d87ceb?w=800&q=80" },
@@ -114,7 +120,7 @@ interface AppContextType {
   currentUser: AuthUser | null;
   login: (email: string, password: string) => { success: boolean; error?: string };
   logout: () => void;
-  updateUserProfile: (updates: { name?: string; email?: string }) => void;
+  updateUserProfile: (updates: { name?: string; email?: string; phone?: string; password?: string; profilePic?: string; }) => void;
 
   // Equipment
   equipment: Equipment[];
@@ -149,7 +155,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
   const [facilities, setFacilities] = useState<Facility[]>(initialFacilities);
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
   const [users, setUsers] = useState<AppUser[]>(initialUsers);
-  const [nextEquipId, setNextEquipId] = useState(13);
+  const [nextEquipId, setNextEquipId] = useState(17);
   const [nextFacilityId, setNextFacilityId] = useState(7);
   const [nextUserId, setNextUserId] = useState(7);
 
@@ -164,8 +170,13 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     const user = users.find((u) => u.email === email && u.password === password);
     if (user) {
       if (user.status === "Inactive") return { success: false, error: "Your account has been deactivated. Contact admin." };
-      if (user.status === "Pending") return { success: false, error: "Your account is pending approval." };
-      setCurrentUser({ id: user.id, name: `${user.firstName} ${user.lastName}`, email: user.email, role: "researcher" });
+      setCurrentUser({
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        role: "researcher",
+        profilePic: user.profilePic
+      });
       return { success: true };
     }
     return { success: false, error: "Invalid email or password." };
@@ -173,23 +184,31 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
 
   const logout = () => setCurrentUser(null);
 
-  const updateUserProfile = (updates: { name?: string; email?: string }) => {
+  const updateUserProfile = (updates: { name?: string; email?: string; phone?: string; password?: string; profilePic?: string; }) => {
     if (!currentUser) return;
 
-    // Update currentUser state
-    setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+    // Update currentUser state (only name, email, and profilePic are exposed to AuthUser)
+    setCurrentUser(prev => prev ? {
+      ...prev,
+      ...(updates.name && { name: updates.name }),
+      ...(updates.email && { email: updates.email }),
+      ...(updates.profilePic !== undefined && { profilePic: updates.profilePic })
+    } : null);
 
     // Synchronize with users list
     if (currentUser.id !== "admin") {
       setUsers(prev => prev.map(u => {
         if (u.id === currentUser.id) {
-          const [firstName = "", ...lastNameParts] = (updates.name || "").split(" ");
+          const [firstName = "", ...lastNameParts] = (updates.name || `${u.firstName} ${u.lastName}`).split(" ");
           const lastName = lastNameParts.join(" ");
           return {
             ...u,
-            firstName: updates.name ? firstName : u.firstName,
-            lastName: updates.name ? lastName : u.lastName,
-            email: updates.email || u.email
+            firstName,
+            lastName,
+            email: updates.email || u.email,
+            ...(updates.phone && { phone: updates.phone }),
+            ...(updates.password && { password: updates.password }),
+            ...(updates.profilePic !== undefined && { profilePic: updates.profilePic })
           };
         }
         return u;
@@ -232,7 +251,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     if (user.email === "admin@rdcenter.edu") return { success: false, error: "This email is reserved." };
     if (users.find((u) => u.email === user.email)) return { success: false, error: "An account with this email already exists." };
     const today = new Date().toISOString().split("T")[0];
-    setUsers((prev) => [...prev, { ...user, id: nextUserId, status: "Pending", joinedAt: today }]);
+    setUsers((prev) => [...prev, { ...user, id: nextUserId, status: "Active", joinedAt: today }]);
     setNextUserId((n) => n + 1);
     return { success: true };
   };

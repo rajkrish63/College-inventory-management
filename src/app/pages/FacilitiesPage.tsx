@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router";
-import { FlaskConical, Microscope, Thermometer, Zap, Users, Clock, Dna, Cpu, Atom, Monitor } from "lucide-react";
+import { FlaskConical, Microscope, Thermometer, Zap, Users, Clock, Dna, Cpu, Atom, Monitor, ChevronRight, LayoutGrid } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -10,7 +10,7 @@ import { useAppContext } from "../context/AppContext";
 const allCategories = ["All", "Chemistry", "Biotechnology", "Materials Science", "Electronics", "Computing"];
 
 export function FacilitiesPage() {
-  const { facilities } = useAppContext();
+  const { facilities, equipment } = useAppContext();
   const location = useLocation();
   const rawData = location.state?.data;
   const passedData = (rawData === "all" || rawData === "All") ? null : rawData;
@@ -21,17 +21,28 @@ export function FacilitiesPage() {
     : "All";
 
   const [activeCategory, setActiveCategory] = useState(defaultCategory);
+  const [selectedEquipCategory, setSelectedEquipCategory] = useState<string | null>(null);
 
   // If the user clicks the link again while already on the page, update the category
   useEffect(() => {
     const target = passedData || "All";
     const match = allCategories.find(c => c.toLowerCase() === target.toLowerCase());
-    if (match) setActiveCategory(match);
+    if (match) {
+      setActiveCategory(match);
+      // Reset equipment category when switching facilities
+      setSelectedEquipCategory(null);
+    }
   }, [passedData]);
 
   const filtered = activeCategory === "All"
     ? facilities
     : facilities.filter((f) => f.category === activeCategory);
+
+  // Initialize equipment category if on a specific facility page
+  useEffect(() => {
+    // We no longer auto-select the first equipment category here
+    // to allow the laboratory overview to show first as requested.
+  }, [passedData, filtered]);
 
   // Dynamic header content mapping
   const headerContent: Record<string, { title: string, desc: string, icon: any, color: string }> = {
@@ -90,81 +101,222 @@ export function FacilitiesPage() {
           <div className={`${passedData ? "flex flex-col lg:flex-row gap-8" : ""}`}>
             {/* Internal Lab Sidebar (Equipment Categories) */}
             {passedData && filtered.length > 0 && (
-              <aside className="w-full lg:flex-1 shrink-0">
+              <aside className="w-full lg:w-64 shrink-0">
                 <div className="sticky top-24">
-                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b pb-2">
-                    Equipment Categories
+                  <h3 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest mb-4 border-b pb-2">
+                    Navigation
                   </h3>
                   <nav className="flex flex-col gap-1">
-                    {filtered[0].features.map((feature, idx) => (
-                      <button
-                        key={idx}
-                        className="text-left px-3 py-2 text-sm text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        {feature}
-                      </button>
-                    ))}
+                    <button
+                      onClick={() => setSelectedEquipCategory(null)}
+                      className={`flex items-center gap-2 text-left px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${!selectedEquipCategory
+                        ? "text-blue-700 bg-blue-50/80 shadow-sm translate-x-1"
+                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                        }`}
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                      Laboratory Overview
+                    </button>
+
+                    <div className="mt-4 mb-2 px-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      Equipment Categories
+                    </div>
+
+                    {filtered[0].features.map((feature, idx) => {
+                      const isActive = selectedEquipCategory === feature;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => setSelectedEquipCategory(feature)}
+                          className={`text-left px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
+                            ? "text-blue-700 bg-blue-50/80 shadow-sm translate-x-1"
+                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                            }`}
+                        >
+                          {feature}
+                        </button>
+                      );
+                    })}
                   </nav>
                 </div>
               </aside>
             )}
 
             {/* Content Area */}
-            <div className={`w-full ${passedData ? "lg:max-w-md lg:shrink-0" : "flex-1"}`}>
-              <div className={`grid gap-6 ${passedData ? "grid-cols-1" : "md:grid-cols-2 lg:grid-cols-3"}`}>
-                {filtered.map((facility) => (
-                  <Card key={facility.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
-                    <div className="relative h-56 overflow-hidden">
-                      <ImageWithFallback
-                        src={facility.image}
-                        alt={facility.name}
-                        className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute top-4 right-4">
-                        <Badge
-                          className={`${facility.availability === "Available" ? "bg-emerald-500" :
-                            facility.availability === "Limited" ? "bg-amber-500" : "bg-rose-500"
-                            } text-white border-0 shadow-sm`}
-                        >
-                          {facility.availability}
-                        </Badge>
-                      </div>
+            <div className="flex-1">
+              {/* Equipment Detailed View (When a category is selected) */}
+              {passedData && selectedEquipCategory ? (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <span>Facilities</span>
+                      <span>/</span>
+                      <span className="text-gray-600 font-medium">{activeCategory}</span>
+                      <span>/</span>
+                      <span className="text-blue-600 font-bold uppercase tracking-tight">{selectedEquipCategory}</span>
                     </div>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-xl font-bold text-gray-900">{facility.name}</CardTitle>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedEquipCategory(null)}
+                      className="text-gray-500 hover:text-blue-600 gap-1.5"
+                    >
+                      <ChevronRight className="h-4 w-4 rotate-180" />
+                      Back to Overview
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-8 max-w-4xl">
+                    {equipment
+                      .filter((e: any) =>
+                        e.name.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
+                        e.category.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
+                        selectedEquipCategory.toLowerCase().includes(e.model.toLowerCase().split(' ')[0])
+                      )
+                      .map((item: any) => (
+                        <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
+                          <CardHeader className="pb-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <CardTitle className="text-xl font-bold text-gray-900">{item.name}</CardTitle>
+                              <Badge
+                                className={`${item.status === "Available" ? "bg-emerald-500" :
+                                  item.status === "In Use" ? "bg-blue-500" : "bg-rose-500"
+                                  } text-white border-0 shadow-sm`}
+                              >
+                                {item.status}
+                              </Badge>
+                            </div>
+                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-0 w-fit">
+                              {item.category}
+                            </Badge>
+                            <CardDescription className="text-gray-600 leading-relaxed mt-2 text-sm">
+                              {item.description}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="space-y-2 py-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Manufacturer:</span>
+                                <span className="font-medium text-gray-900">{item.manufacturer}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Model:</span>
+                                <span className="font-medium text-gray-900">{item.model}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Location:</span>
+                                <span className="font-medium text-gray-900">{item.location}</span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Key Specifications</h4>
+                              <div className="flex flex-wrap gap-1.5">
+                                {item.specifications.map((spec: string, idx: number) => (
+                                  <Badge key={idx} variant="outline" className="text-[10px] font-medium border-gray-200 text-gray-500">
+                                    {spec}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Applications</h4>
+                              <div className="flex flex-wrap gap-1.5">
+                                {item.applications.map((app: string, idx: number) => (
+                                  <Badge key={idx} variant="outline" className="text-[10px] font-medium border-gray-200 text-gray-500">
+                                    {app}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          </CardContent>
+                          <CardFooter className="pt-2">
+                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm" asChild
+                              disabled={item.status === "Maintenance"}>
+                              <Link to="/booking" state={{
+                                equipment: item.name,
+                                equipCategory: item.category,
+                                equipFacility: passedData?.name ?? "",
+                                type: "equipment",
+                              }}>
+                                {item.status === "Maintenance" ? "Under Maintenance" : "Reserve This Equipment"}
+                              </Link>
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      ))}
+                  </div>
+
+                  {equipment.filter((e: any) =>
+                    e.name.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
+                    e.category.toLowerCase().includes(selectedEquipCategory.toLowerCase())
+                  ).length === 0 && (
+                      <div className="py-20 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
+                        <Monitor className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <h4 className="text-gray-500 font-medium">No specialized data available for {selectedEquipCategory} yet.</h4>
+                        <p className="text-gray-400 text-sm">Please select another category or check back later.</p>
                       </div>
-                      <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-0 w-fit">
-                        {facility.category}
-                      </Badge>
-                      <CardDescription className="text-gray-600 leading-relaxed mt-2 text-sm">
-                        {facility.description}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Users className="h-4 w-4" />
-                        <span>Maximum capacity: {facility.capacity}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {facility.features.map((feature, idx) => (
-                          <Badge key={idx} variant="outline" className="text-[11px] font-medium border-gray-200 text-gray-500">
-                            {feature}
+                    )}
+                </div>
+              ) : (
+                /* Facility Grid (Default View) */
+                <div className={`grid gap-6 ${passedData ? "grid-cols-1 max-w-2xl" : "md:grid-cols-2 lg:grid-cols-3"}`}>
+                  {filtered.map((facility) => (
+                    <Card key={facility.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
+                      <div className="relative h-56 overflow-hidden">
+                        <ImageWithFallback
+                          src={facility.image}
+                          alt={facility.name}
+                          className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute top-4 right-4">
+                          <Badge
+                            className={`${facility.availability === "Available" ? "bg-emerald-500" :
+                              facility.availability === "Limited" ? "bg-amber-500" : "bg-rose-500"
+                              } text-white border-0 shadow-sm`}
+                          >
+                            {facility.availability}
                           </Badge>
-                        ))}
+                        </div>
                       </div>
-                    </CardContent>
-                    <CardFooter className="pt-2">
-                      <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm" asChild
-                        disabled={facility.availability === "Unavailable"}>
-                        <Link to="/booking">
-                          {facility.availability === "Unavailable" ? "Temporarily Closed" : "Reserve This Facility"}
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <CardTitle className="text-xl font-bold text-gray-900">{facility.name}</CardTitle>
+                        </div>
+                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-0 w-fit">
+                          {facility.category}
+                        </Badge>
+                        <CardDescription className="text-gray-600 leading-relaxed mt-2 text-sm">
+                          {facility.description}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <Users className="h-4 w-4" />
+                          <span>Maximum capacity: {facility.capacity}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {facility.features.map((feature, idx) => (
+                            <Badge key={idx} variant="outline" className="text-[11px] font-medium border-gray-200 text-gray-500">
+                              {feature}
+                            </Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-2">
+                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm" asChild
+                          disabled={facility.availability === "Unavailable"}>
+                          <Link to="/booking" state={{ facility: facility.name, type: "facility" }}>
+                            {facility.availability === "Unavailable" ? "Temporarily Closed" : "Reserve This Facility"}
+                          </Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              )}
 
               {filtered.length === 0 && (
                 <div className="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">

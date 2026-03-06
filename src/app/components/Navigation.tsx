@@ -4,6 +4,7 @@ import { Menu, X, Microscope, Shield, LogIn, UserPlus, ChevronDown } from "lucid
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { useAppContext } from "../context/AppContext";
+import { UserMenu } from "./UserMenu";
 
 const navLinks = [
   { path: "/equipment", label: "Equipment" },
@@ -12,9 +13,10 @@ const navLinks = [
 
 interface NavigationProps {
   onMenuClick?: () => void;
+  onLogoutClick?: () => void;
 }
 
-export function Navigation({ onMenuClick }: NavigationProps) {
+export function Navigation({ onMenuClick, onLogoutClick }: NavigationProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,9 +29,6 @@ export function Navigation({ onMenuClick }: NavigationProps) {
   return (
     <Navbar>
       <div className="flex items-center gap-4">
-        {/* Sidebar Toggle Menu Icon */}
-        <Navbar.SidebarToggle onClick={onMenuClick} />
-
         {/* Logo */}
         <Navbar.Brand
           to="/"
@@ -52,7 +51,7 @@ export function Navigation({ onMenuClick }: NavigationProps) {
       </Navbar.Nav>
 
       {/* Desktop Right Actions */}
-      <Navbar.Actions className="hidden md:flex">
+      <Navbar.Actions className="hidden md:flex items-center gap-3">
         {currentUser ? (
           <>
             {currentUser.role === "admin" && (
@@ -60,6 +59,10 @@ export function Navigation({ onMenuClick }: NavigationProps) {
                 <Link to="/admin"><Shield className="h-4 w-4" />Admin</Link>
               </Button>
             )}
+            <UserMenu
+              variant="navbar"
+              onLogoutClick={onLogoutClick!}
+            />
           </>
         ) : (
           <>

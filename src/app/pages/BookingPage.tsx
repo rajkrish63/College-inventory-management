@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Clock, User, Mail, Building, FileText, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -9,6 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "../components/ui/select";
 import { useAppContext } from "../context/AppContext";
+import { useLocation } from "react-router";
 
 const timeSlots = [
   "08:00 - 10:00", "10:00 - 12:00", "12:00 - 14:00",
@@ -16,13 +17,70 @@ const timeSlots = [
 ];
 
 export function BookingPage() {
-  const { facilities, equipment: equipmentList, addBooking } = useAppContext();
+  const { facilities, equipment: equipmentList, addBooking, currentUser, users } = useAppContext();
+  const location = useLocation();
+  const routeState = location.state as {
+    equipment?: string; equipCategory?: string; equipFacility?: string;
+    facility?: string; type?: string;
+  } | null;
+
+  const userProfile = currentUser && currentUser.id !== "admin"
+    ? users.find((u) => String(u.id) === String(currentUser.id))
+    : null;
+
+  const bookingType = routeState?.type === "facility" ? "facility" : "equipment";
+
   const [submitted, setSubmitted] = useState(false);
   const [bookingId, setBookingId] = useState("");
+  const [persons, setPersons] = useState(1);
+  const [extraPersons, setExtraPersons] = useState<{ name: string; email: string }[]>([]);
   const [formData, setFormData] = useState({
-    name: "", email: "", department: "", type: "",
-    facility: "", equipment: "", date: "", timeSlot: "", purpose: "",
+    name: "",
+    email: "",
+    department: "",
+    type: bookingType,
+    facility: routeState?.facility ?? "",
+    equipFacility: routeState?.equipFacility ?? "",
+    equipCategory: routeState?.equipCategory ?? "",
+    equipment: routeState?.equipment ?? "",
+    quantity: 1,
+    date: "", timeSlot: "", purpose: "",
   });
+
+  // Update extraPersons array when persons count changes
+  useEffect(() => {
+    const extra = Math.max(0, persons - 1);
+    setExtraPersons((prev) => {
+      if (extra > prev.length) return [...prev, ...Array(extra - prev.length).fill({ name: "", email: "" })];
+      return prev.slice(0, extra);
+    });
+  }, [persons]);
+
+  // Auto-fill user details on mount / whenever login state changes
+  useEffect(() => {
+    const profile = currentUser && currentUser.id !== "admin"
+      ? users.find((u) => String(u.id) === String(currentUser.id))
+      : null;
+
+    // Find facility for the equipment if not already provided
+    const equipCat = routeState?.equipCategory ?? "";
+    const equipName = routeState?.equipment ?? "";
+    let resolvedFacility = routeState?.equipFacility ?? "";
+    if (!resolvedFacility && (equipCat || equipName)) {
+      // Find facility whose features include the equipment category
+      const match = facilities.find((f) =>
+        f.features.some((feat) => feat.toLowerCase() === equipCat.toLowerCase())
+      );
+      if (match) resolvedFacility = match.name;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      ...(currentUser ? { name: currentUser.name, email: currentUser.email } : {}),
+      ...(profile ? { department: `${profile.department}, ${profile.institution}` } : {}),
+      ...(resolvedFacility ? { equipFacility: resolvedFacility } : {}),
+    }));
+  }, [currentUser?.id]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,43 +95,9 @@ export function BookingPage() {
 
   const resetForm = () => {
     setSubmitted(false);
-    setFormData({ name: "", email: "", department: "", type: "", facility: "", equipment: "", date: "", timeSlot: "", purpose: "" });
+    setFormData({ name: "", email: "", department: "", type: "equipment", facility: "", equipFacility: "", equipCategory: "", equipment: "", quantity: 1, date: "", timeSlot: "", purpose: "" });
   };
-
-  if (submitted) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <Card className="max-w-md w-full text-center">
-          <CardHeader>
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-            <CardTitle className="text-2xl">Request Submitted!</CardTitle>
-            <CardDescription>
-              Your access request has been submitted. Our team will review it and contact you within 24-48 hours.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 text-sm text-left bg-gray-50 p-4 rounded-lg mb-6">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Request ID:</span>
-                <span className="font-medium font-mono text-blue-600">{bookingId}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Date:</span>
-                <span className="font-medium">{formData.date}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Email:</span>
-                <span className="font-medium">{formData.email}</span>
-              </div>
-            </div>
-            <Button onClick={resetForm} className="w-full">Submit Another Request</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // The submitted dialog is now rendered as a modal at the end of the return statement.
 
   return (
     <div>
@@ -89,171 +113,300 @@ export function BookingPage() {
 
       {/* Form Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Info Cards */}
-            <div className="md:col-span-1 space-y-4">
-              <Card>
-                <CardHeader>
-                  <Clock className="h-6 w-6 text-blue-600 mb-2" />
-                  <CardTitle className="text-lg">Quick Response</CardTitle>
-                  <CardDescription>Most requests are processed within 24-48 hours</CardDescription>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <User className="h-6 w-6 text-blue-600 mb-2" />
-                  <CardTitle className="text-lg">Training Provided</CardTitle>
-                  <CardDescription>Equipment training sessions available upon approval</CardDescription>
-                </CardHeader>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <FileText className="h-6 w-6 text-blue-600 mb-2" />
-                  <CardTitle className="text-lg">Documentation</CardTitle>
-                  <CardDescription>Safety protocols and SOPs provided before access</CardDescription>
-                </CardHeader>
-              </Card>
-            </div>
-
-            {/* Booking Form */}
-            <div className="md:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Access Request Form</CardTitle>
-                  <CardDescription>Please fill out all required fields to submit your request</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Personal Info */}
-                    <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">Personal Information</h3>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name">Full Name *</Label>
-                          <Input id="name" placeholder="John Doe" required value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email Address *</Label>
-                          <Input id="email" type="email" placeholder="john.doe@university.edu" required
-                            value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="department">Department/Organization *</Label>
-                        <Input id="department" placeholder="e.g., Chemistry Department, XYZ University" required
-                          value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} />
-                      </div>
+        <div className="max-w-3xl mx-auto">
+          {/* Booking Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Access Request Form</CardTitle>
+              <CardDescription>Please fill out all required fields to submit your request</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Personal Info */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-lg">Personal Information</h3>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name *</Label>
+                      <Input id="name" placeholder="John Doe" required value={formData.name}
+                        readOnly={!!currentUser}
+                        className={currentUser ? "bg-gray-50 text-gray-600 cursor-not-allowed" : ""}
+                        onChange={(e) => !currentUser && setFormData({ ...formData, name: e.target.value })} />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email Address *</Label>
+                      <Input id="email" type="email" placeholder="john.doe@university.edu" required
+                        readOnly={!!currentUser}
+                        className={currentUser ? "bg-gray-50 text-gray-600 cursor-not-allowed" : ""}
+                        value={formData.email} onChange={(e) => !currentUser && setFormData({ ...formData, email: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="department">Department/Organization *</Label>
+                    <Input id="department" placeholder="e.g., Chemistry Department, XYZ University" required
+                      readOnly={!!currentUser}
+                      className={currentUser ? "bg-gray-50 text-gray-600 cursor-not-allowed" : ""}
+                      value={formData.department} onChange={(e) => !currentUser && setFormData({ ...formData, department: e.target.value })} />
+                  </div>
+                </div>
 
-                    {/* Access Details */}
+                {/* Access Details */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Access Details</h3>
+
+                  {/* ── FACILITY FLOW ── */}
+                  {formData.type === "facility" && (
                     <div className="space-y-4">
-                      <h3 className="font-semibold text-lg">Access Details</h3>
+                      {/* Facility select */}
                       <div className="space-y-2">
-                        <Label htmlFor="type">Request Type *</Label>
-                        <Select required value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v, facility: "", equipment: "" })}>
-                          <SelectTrigger id="type"><SelectValue placeholder="Select request type" /></SelectTrigger>
+                        <Label htmlFor="facility">Facility *</Label>
+                        <Select required value={formData.facility} onValueChange={(v) => setFormData({ ...formData, facility: v })}>
+                          <SelectTrigger id="facility"><SelectValue placeholder="Select a facility" /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="facility">Facility Access</SelectItem>
-                            <SelectItem value="equipment">Equipment Booking</SelectItem>
-                            <SelectItem value="both">Both Facility & Equipment</SelectItem>
+                            {facilities.filter((f) => f.availability !== "Unavailable").map((f) => (
+                              <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
 
-                      {(formData.type === "facility" || formData.type === "both") && (
-                        <div className="space-y-2">
-                          <Label htmlFor="facility">Select Facility *</Label>
-                          <Select required value={formData.facility} onValueChange={(v) => setFormData({ ...formData, facility: v })}>
-                            <SelectTrigger id="facility"><SelectValue placeholder="Choose a facility" /></SelectTrigger>
-                            <SelectContent>
-                              {facilities.filter((f) => f.availability !== "Unavailable").map((f) => (
-                                <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      {/* Number of persons */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label>Number of Persons *</Label>
+                          <p className="text-xs text-gray-400 mt-0.5">Including yourself</p>
                         </div>
-                      )}
-
-                      {(formData.type === "equipment" || formData.type === "both") && (
-                        <div className="space-y-2">
-                          <Label htmlFor="equipment">Select Equipment *</Label>
-                          <Select required value={formData.equipment} onValueChange={(v) => setFormData({ ...formData, equipment: v })}>
-                            <SelectTrigger id="equipment"><SelectValue placeholder="Choose equipment" /></SelectTrigger>
-                            <SelectContent>
-                              {equipmentList.filter((e) => e.status === "Available").map((item) => (
-                                <SelectItem key={item.id} value={item.name}>{item.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="date">Preferred Date *</Label>
-                          <Input id="date" type="date" required value={formData.date}
-                            onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="timeSlot">Preferred Time Slot *</Label>
-                          <Select required value={formData.timeSlot} onValueChange={(v) => setFormData({ ...formData, timeSlot: v })}>
-                            <SelectTrigger id="timeSlot"><SelectValue placeholder="Select time slot" /></SelectTrigger>
-                            <SelectContent>
-                              {timeSlots.map((slot) => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
+                        <div className="flex items-center gap-2">
+                          <button type="button"
+                            onClick={() => setPersons((p) => Math.max(1, p - 1))}
+                            disabled={persons <= 1}
+                            className="w-8 h-8 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 flex items-center justify-center text-lg font-semibold text-gray-600 transition-colors disabled:opacity-40"
+                          >−</button>
+                          <input type="number" min={1} value={persons}
+                            onChange={(e) => setPersons(Math.max(1, Number(e.target.value)))}
+                            className="w-14 text-center border border-gray-300 rounded-lg h-8 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button type="button"
+                            onClick={() => setPersons((p) => p + 1)}
+                            className="w-8 h-8 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 flex items-center justify-center text-lg font-semibold text-gray-600 transition-colors"
+                          >+</button>
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="purpose">Research Purpose *</Label>
-                        <Textarea id="purpose" rows={4} required
-                          placeholder="Please describe your research purpose and how you plan to use the facility/equipment..."
-                          value={formData.purpose} onChange={(e) => setFormData({ ...formData, purpose: e.target.value })} />
-                      </div>
+                      {/* Extra persons details */}
+                      {extraPersons.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-semibold text-gray-700">Additional Persons Details</h4>
+                          {extraPersons.map((p, i) => (
+                            <div key={i} className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Person {i + 2}</p>
+                              <div className="grid md:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <Label htmlFor={`ep-name-${i}`}>Full Name *</Label>
+                                  <Input id={`ep-name-${i}`} required placeholder="Full name" value={p.name}
+                                    onChange={(e) => setExtraPersons((prev) => prev.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label htmlFor={`ep-email-${i}`}>Email *</Label>
+                                  <Input id={`ep-email-${i}`} type="email" required placeholder="email@example.com" value={p.email}
+                                    onChange={(e) => setExtraPersons((prev) => prev.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                  )}
 
-                    <Button type="submit" className="w-full" size="lg">Submit Request</Button>
-                  </form>
-                </CardContent>
-              </Card>
+                  {/* ── EQUIPMENT FLOW ── */}
+                  {formData.type === "equipment" && (
+                    <div className="space-y-3">
+                      {/* Step 1: Facility */}
+                      <div className="space-y-2">
+                        <Label htmlFor="equipFacility">Facility *</Label>
+                        <Select
+                          required
+                          value={formData.equipFacility}
+                          onValueChange={(v) => setFormData({ ...formData, equipFacility: v, equipCategory: "", equipment: "" })}
+                        >
+                          <SelectTrigger id="equipFacility"><SelectValue placeholder="Select a facility" /></SelectTrigger>
+                          <SelectContent>
+                            {facilities.filter((f) => f.availability !== "Unavailable").map((f) => (
+                              <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Step 2: Equipment Category (from facility features) */}
+                      {formData.equipFacility && (() => {
+                        const selectedFacility = facilities.find((f) => f.name === formData.equipFacility);
+                        const categories = selectedFacility?.features ?? [];
+                        return (
+                          <div className="space-y-2">
+                            <Label htmlFor="equipCategory">Equipment Category *</Label>
+                            <Select
+                              required
+                              value={formData.equipCategory}
+                              onValueChange={(v) => setFormData({ ...formData, equipCategory: v, equipment: "" })}
+                            >
+                              <SelectTrigger id="equipCategory"><SelectValue placeholder="Select a category" /></SelectTrigger>
+                              <SelectContent>
+                                {categories.map((cat) => (
+                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Step 3: Equipment (filtered by category) */}
+                      {formData.equipCategory && (() => {
+                        const filtered = equipmentList.filter(
+                          (e) =>
+                            e.status === "Available" &&
+                            (e.category.toLowerCase() === formData.equipCategory.toLowerCase() ||
+                              e.name.toLowerCase().includes(formData.equipCategory.toLowerCase()))
+                        );
+                        return (
+                          <div className="space-y-2">
+                            <Label htmlFor="equipment">Select Equipment *</Label>
+                            <Select
+                              required
+                              value={formData.equipment}
+                              onValueChange={(v) => setFormData({ ...formData, equipment: v })}
+                            >
+                              <SelectTrigger id="equipment"><SelectValue placeholder="Choose equipment" /></SelectTrigger>
+                              <SelectContent>
+                                {filtered.length > 0 ? (
+                                  filtered.map((item) => (
+                                    <SelectItem key={item.id} value={item.name}>{item.name}</SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="__none" disabled>No available equipment in this category</SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+
+                            {/* Quantity Counter */}
+                            <div className="flex items-center justify-between pt-1">
+                              <Label htmlFor="quantity">Quantity</Label>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setFormData((p) => ({ ...p, quantity: Math.max(1, p.quantity - 1) }))}
+                                  className="w-8 h-8 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 flex items-center justify-center text-lg font-semibold text-gray-600 transition-colors disabled:opacity-40"
+                                  disabled={formData.quantity <= 1}
+                                >−</button>
+                                <input
+                                  id="quantity"
+                                  type="number"
+                                  min={1}
+                                  value={formData.quantity}
+                                  onChange={(e) => setFormData((p) => ({ ...p, quantity: Math.max(1, Number(e.target.value)) }))}
+                                  className="w-14 text-center border border-gray-300 rounded-lg h-8 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setFormData((p) => ({ ...p, quantity: p.quantity + 1 }))}
+                                  className="w-8 h-8 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 flex items-center justify-center text-lg font-semibold text-gray-600 transition-colors"
+                                >+</button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Preferred Date *</Label>
+                    <Input id="date" type="date" required value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="timeSlot">Preferred Time Slot *</Label>
+                    <Select required value={formData.timeSlot} onValueChange={(v) => setFormData({ ...formData, timeSlot: v })}>
+                      <SelectTrigger id="timeSlot"><SelectValue placeholder="Select time slot" /></SelectTrigger>
+                      <SelectContent>
+                        {timeSlots.map((slot) => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <h3 className="font-semibold text-lg">Additional Information</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="idProof">Upload ID Proof *</Label>
+                  <label
+                    htmlFor="idProof"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all group"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-1 text-center">
+                      <svg className="h-8 w-8 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                        <span className="font-medium">Click to upload</span> your ID proof
+                      </p>
+                      <p className="text-xs text-gray-400">Aadhar card, Passport, or Institution ID (JPG, PNG, PDF)</p>
+                    </div>
+                    <input id="idProof" type="file" accept="image/*,.pdf" className="hidden" required />
+                  </label>
+                </div>
+
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+                  <span className="text-amber-500 text-lg mt-0.5">⚠️</span>
+                  <div>
+                    <h3 className="font-semibold text-amber-800 text-sm">ID Proof Required</h3>
+                    <p className="text-xs text-amber-700 mt-0.5">Please carry a valid government-issued ID (Aadhar card, passport, or institution ID) on the day of your visit. Access will not be granted without verification.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="purpose">Research Purpose *</Label>
+                  <Textarea id="purpose" rows={4} required
+                    placeholder="Please describe your research purpose and how you plan to use the facility/equipment..."
+                    value={formData.purpose} onChange={(e) => setFormData({ ...formData, purpose: e.target.value })} />
+                </div>
+
+                <Button type="submit" className="w-full" size="lg">Submit Request</Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Success Modal */}
+      {submitted && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 text-center space-y-4">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Request Submitted!</h3>
+                <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                  Your request is submitted. The Admin will accept or reject your request within 24 hours.
+                </p>
+              </div>
+              <div className="pt-4">
+                <Button onClick={resetForm} className="w-full bg-blue-600 hover:bg-blue-700">
+                  Got it, thanks!
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Guidelines */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div className="max-w-8xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Access Guidelines</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader><CardTitle>Before You Book</CardTitle></CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>• Check equipment availability and specifications</li>
-                  <li>• Review safety protocols and requirements</li>
-                  <li>• Ensure you have necessary clearances</li>
-                  <li>• Plan your experiment timeline</li>
-                </ul>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle>After Approval</CardTitle></CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>• Complete mandatory safety training</li>
-                  <li>• Review equipment SOPs</li>
-                  <li>• Arrange for technical support if needed</li>
-                  <li>• Confirm your booking 24 hours before</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
+      )}
     </div>
   );
 }
