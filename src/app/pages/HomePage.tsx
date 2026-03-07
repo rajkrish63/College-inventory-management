@@ -13,22 +13,56 @@ const researchAreas = [
   { icon: Atom, title: "Computer Lab", description: "High-performance computing and data analysis facilities" },
 ];
 
+function TypedContent({ text }: { text: string }) {
+  const words = text.split(" ");
+  let charIndex = 0;
+
+  return (
+    <span className="typed-content inline-block align-top" aria-label={text}>
+      {words.map((word, wordIndex) => {
+        const currentWordIndex = charIndex;
+        charIndex += word.length + 1;
+
+        return [
+          <span key={`word-${wordIndex}`} className="inline-block whitespace-nowrap">
+            {Array.from(word).map((character, i) => (
+              <span
+                key={`${character}-${currentWordIndex + i}`}
+                aria-hidden="true"
+                className="typed-char relative inline-block"
+                style={{ animationDelay: `${(currentWordIndex + i) * 0.06}s` }}
+              >
+                {character}
+              </span>
+            ))}
+          </span>,
+          wordIndex < words.length - 1 ? (
+            <span key={`space-${wordIndex}`} aria-hidden="true" className="inline-block w-[0.3em]" />
+          ) : null,
+        ];
+      })}
+    </span>
+  );
+}
+
 export function HomePage() {
   return (
-    <div>
+    <div className="h-full">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-50 to-cyan-50 py-20 px-4 sm:px-6 lg:px-9">
+      <section className="relative bg-gradient-to-br from-blue-50 to-cyan-50 py-20 px-4 sm:px-6 lg:px-9 min-h-full flex items-center">
         <div className="max-w-8xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-6">
 
               <h1 className="text-5xl md:text-6xl font-bold text-gray-900 leading-tight">
-                Access World-Class Research Infrastructure
+                <TypedContent text="Mahendra College of Engineering" />
               </h1>
               <p className="text-xl text-gray-600 leading-relaxed">
-                Our Research & Development Center provides cutting-edge facilities and equipment
-                to support groundbreaking scientific research and innovation.
+                <span className="text-3xl font-medium text-gray-800">Research & Development Center</span>
+                <br />
+                Empowering Innovation, Driving Excellence in Research.<br /> Our state-of-the-art facilities provide researchers and students with the tools needed to push the boundaries of science and technology.
+
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button size="lg" className="group" asChild>

@@ -98,12 +98,13 @@ export function AuthPage() {
                 password: form.password, department: form.department, institution: form.institution,
                 role: form.role, phone: form.phone,
             });
-            setLoading(false);
+
             if (result.success) {
-                setSubmitted(true);
+                navigate("/");
             } else {
                 setServerError(result.error || "Registration failed.");
             }
+            setLoading(false);
         }, 600);
     };
 
@@ -213,7 +214,7 @@ export function AuthPage() {
                 <div className={`w-full mx-auto space-y-6 ${isLoginMode ? 'max-w-md' : 'max-w-lg'}`}>
                     <div className="space-y-1 text-center">
                         <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">{isLoginMode ? "Sign In" : "Register"}</h2>
-                        <p className="text-sm text-gray-500 font-medium">{isLoginMode ? "Access your researcher dashboard" : "Step into the future of research"}</p>
+                        <p className="text-sm text-gray-500 font-medium">{isLoginMode ? "Access your researcher dashboard" : ""}</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
@@ -293,6 +294,12 @@ export function AuthPage() {
                         {!isLoginMode && (
                             <div className="grid sm:grid-cols-2 gap-4">
                                 {field("institution", "Institution", "text", "e.g. MIT")}
+                                {field("department", "Department", "text", "e.g. CS")}
+                            </div>
+                        )}
+
+                        {!isLoginMode && (
+                            <div className="grid gap-4">
                                 <div className="space-y-1.5">
                                     <Label htmlFor="role" className="text-xs font-bold uppercase tracking-wider text-gray-500 ml-1">Role <span className="text-red-500">*</span></Label>
                                     <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
@@ -353,13 +360,6 @@ export function AuthPage() {
                             )}
                         </Button>
 
-                        {!isLoginMode && (
-                            <p className="text-[10px] text-gray-400 text-center font-medium leading-relaxed px-4 pt-2">
-                                By registering, you agree to Mahendra R&D Hub's{" "}
-                                <a href="#" className="text-blue-600 font-bold hover:underline">Terms of Use</a> and{" "}
-                                <a href="#" className="text-blue-600 font-bold hover:underline">Safety Policies</a>.
-                            </p>
-                        )}
 
                     </form>
 

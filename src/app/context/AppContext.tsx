@@ -96,12 +96,12 @@ const initialFacilities: Facility[] = [
 ];
 
 const initialBookings: Booking[] = [
-  { id: "RD-1001", name: "Dr. Sarah Chen", email: "s.chen@mit.edu", department: "Chemistry Dept., MIT", type: "equipment", facility: "", equipment: "GC-MS (Gas Chromatography-Mass Spectrometry)", date: "2026-03-10", timeSlot: "10:00 - 12:00", purpose: "Analysis of metabolite compounds in biological samples for cancer research.", status: "Pending", submittedAt: "2026-03-01" },
-  { id: "RD-1002", name: "Prof. James Wright", email: "j.wright@stanford.edu", department: "Materials Science, Stanford", type: "facility", facility: "Clean Room Facility", equipment: "", date: "2026-03-12", timeSlot: "08:00 - 10:00", purpose: "Nanofabrication of thin-film solar cell prototypes for renewable energy study.", status: "Approved", submittedAt: "2026-02-28" },
-  { id: "RD-1003", name: "Dr. Aisha Patel", email: "a.patel@caltech.edu", department: "Molecular Biology, Caltech", type: "equipment", facility: "", equipment: "Real-Time PCR System", date: "2026-03-08", timeSlot: "14:00 - 16:00", purpose: "Gene expression profiling for CRISPR-edited cell lines in immunotherapy research.", status: "Approved", submittedAt: "2026-02-25" },
-  { id: "RD-1004", name: "Dr. Marcus Lee", email: "m.lee@berkeley.edu", department: "Physics, UC Berkeley", type: "both", facility: "Materials Characterization Center", equipment: "X-Ray Diffractometer", date: "2026-03-15", timeSlot: "12:00 - 14:00", purpose: "Crystal structure analysis of newly synthesized quantum dot materials.", status: "Pending", submittedAt: "2026-03-02" },
-  { id: "RD-1005", name: "Dr. Elena Rossi", email: "e.rossi@harvard.edu", department: "Biochemistry, Harvard", type: "facility", facility: "Molecular Biology Suite", equipment: "", date: "2026-03-20", timeSlot: "10:00 - 12:00", purpose: "Cell culture experiments for protein folding study in neurodegenerative diseases.", status: "Rejected", submittedAt: "2026-02-20" },
-  { id: "RD-1006", name: "Mr. David Kim", email: "d.kim@gatech.edu", department: "Electrical Engineering, Georgia Tech", type: "facility", facility: "Electronics & Instrumentation Lab", equipment: "", date: "2026-03-18", timeSlot: "16:00 - 18:00", purpose: "Testing custom PCB designs for IoT sensor node development project.", status: "Pending", submittedAt: "2026-03-03" },
+  { id: "RD-1001", name: "Dr. Sarah Chen", email: "s.chen@mit.edu", department: "Chemistry Dept., MIT", type: "equipment", facility: "", equipment: "GC-MS (Gas Chromatography-Mass Spectrometry)", date: "2026-03-10", timeSlot: "10:00 - 12:00", purpose: "Analysis of metabolite compounds in biological samples for cancer research.", status: "Pending", submittedAt: "2026-03-01T09:15:00Z" },
+  { id: "RD-1002", name: "Prof. James Wright", email: "j.wright@stanford.edu", department: "Materials Science, Stanford", type: "facility", facility: "Clean Room Facility", equipment: "", date: "2026-03-12", timeSlot: "08:00 - 10:00", purpose: "Nanofabrication of thin-film solar cell prototypes for renewable energy study.", status: "Approved", submittedAt: "2026-02-28T14:30:00Z" },
+  { id: "RD-1003", name: "Dr. Aisha Patel", email: "a.patel@caltech.edu", department: "Molecular Biology, Caltech", type: "equipment", facility: "", equipment: "Real-Time PCR System", date: "2026-03-08", timeSlot: "14:00 - 16:00", purpose: "Gene expression profiling for CRISPR-edited cell lines in immunotherapy research.", status: "Approved", submittedAt: "2026-02-25T11:45:00Z" },
+  { id: "RD-1004", name: "Dr. Marcus Lee", email: "m.lee@berkeley.edu", department: "Physics, UC Berkeley", type: "both", facility: "Materials Characterization Center", equipment: "X-Ray Diffractometer", date: "2026-03-15", timeSlot: "12:00 - 14:00", purpose: "Crystal structure analysis of newly synthesized quantum dot materials.", status: "Pending", submittedAt: "2026-03-02T16:20:00Z" },
+  { id: "RD-1005", name: "Dr. Elena Rossi", email: "e.rossi@harvard.edu", department: "Biochemistry, Harvard", type: "facility", facility: "Molecular Biology Suite", equipment: "", date: "2026-03-20", timeSlot: "10:00 - 12:00", purpose: "Cell culture experiments for protein folding study in neurodegenerative diseases.", status: "Rejected", submittedAt: "2026-02-20T10:00:00Z" },
+  { id: "RD-1006", name: "Mr. David Kim", email: "d.kim@gatech.edu", department: "Electrical Engineering, Georgia Tech", type: "facility", facility: "Electronics & Instrumentation Lab", equipment: "", date: "2026-03-18", timeSlot: "16:00 - 18:00", purpose: "Testing custom PCB designs for IoT sensor node development project.", status: "Pending", submittedAt: "2026-03-03T13:10:00Z" },
 ];
 
 const initialUsers: AppUser[] = [
@@ -122,17 +122,20 @@ interface AppContextType {
   logout: () => void;
   updateUserProfile: (updates: { name?: string; email?: string; phone?: string; password?: string; profilePic?: string; }) => void;
 
-  // Equipment
-  equipment: Equipment[];
-  addEquipment: (item: Omit<Equipment, "id">) => void;
-  updateEquipmentStatus: (id: number, status: Equipment["status"]) => void;
-  deleteEquipment: (id: number) => void;
-
   // Facilities
   facilities: Facility[];
   addFacility: (facility: Omit<Facility, "id">) => void;
+  updateFacility: (id: number, updates: Partial<Omit<Facility, "id">>) => void;
   updateFacilityAvailability: (id: number, availability: Facility["availability"]) => void;
   deleteFacility: (id: number) => void;
+  addFacilityWithEquipment: (facility: Omit<Facility, "id">, items: Omit<Equipment, "id">[]) => void;
+
+  // Equipment
+  equipment: Equipment[];
+  addEquipment: (item: Omit<Equipment, "id">) => void;
+  updateEquipment: (id: number, updates: Partial<Omit<Equipment, "id">>) => void;
+  updateEquipmentStatus: (id: number, status: Equipment["status"]) => void;
+  deleteEquipment: (id: number) => void;
 
   // Bookings
   bookings: Booking[];
@@ -221,6 +224,8 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     setEquipment((prev) => [...prev, { ...item, id: nextEquipId }]);
     setNextEquipId((n) => n + 1);
   };
+  const updateEquipment = (id: number, updates: Partial<Omit<Equipment, "id">>) =>
+    setEquipment((prev) => prev.map((e) => (e.id === id ? { ...e, ...updates } : e)));
   const updateEquipmentStatus = (id: number, status: Equipment["status"]) =>
     setEquipment((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
   const deleteEquipment = (id: number) =>
@@ -231,6 +236,22 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     setFacilities((prev) => [...prev, { ...facility, id: nextFacilityId }]);
     setNextFacilityId((n) => n + 1);
   };
+
+  const addFacilityWithEquipment = (facility: Omit<Facility, "id">, items: Omit<Equipment, "id">[]) => {
+    const fId = nextFacilityId;
+    setFacilities((prev) => [...prev, { ...facility, id: fId }]);
+    setNextFacilityId((n) => n + 1);
+
+    const newEquipments = items.map((item, index) => ({
+      ...item,
+      id: nextEquipId + index,
+      location: `${facility.name} - ${facility.room}`
+    }));
+    setEquipment((prev) => [...prev, ...newEquipments]);
+    setNextEquipId((n) => n + items.length);
+  };
+  const updateFacility = (id: number, updates: Partial<Omit<Facility, "id">>) =>
+    setFacilities((prev) => prev.map((f) => (f.id === id ? { ...f, ...updates } : f)));
   const updateFacilityAvailability = (id: number, availability: Facility["availability"]) =>
     setFacilities((prev) => prev.map((f) => (f.id === id ? { ...f, availability } : f)));
   const deleteFacility = (id: number) =>
@@ -239,8 +260,8 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
   // Bookings
   const addBooking = (booking: Omit<Booking, "id" | "status" | "submittedAt">): string => {
     const id = `RD-${1000 + bookings.length + 1}`;
-    const today = new Date().toISOString().split("T")[0];
-    setBookings((prev) => [...prev, { ...booking, id, status: "Pending", submittedAt: today }]);
+    const submittedAt = new Date().toISOString();
+    setBookings((prev) => [...prev, { ...booking, id, status: "Pending", submittedAt }]);
     return id;
   };
   const updateBookingStatus = (id: string, status: Booking["status"]) =>
@@ -251,8 +272,19 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     if (user.email === "admin@rdcenter.edu") return { success: false, error: "This email is reserved." };
     if (users.find((u) => u.email === user.email)) return { success: false, error: "An account with this email already exists." };
     const today = new Date().toISOString().split("T")[0];
-    setUsers((prev) => [...prev, { ...user, id: nextUserId, status: "Active", joinedAt: today }]);
+    const newUser: AppUser = { ...user, id: nextUserId, status: "Active", joinedAt: today };
+    setUsers((prev) => [...prev, newUser]);
     setNextUserId((n) => n + 1);
+
+    // Auto-login
+    setCurrentUser({
+      id: newUser.id,
+      name: `${newUser.firstName} ${newUser.lastName}`,
+      email: newUser.email,
+      role: "researcher",
+      profilePic: newUser.profilePic
+    });
+
     return { success: true };
   };
   const updateUserStatus = (id: number, status: AppUser["status"]) =>
@@ -261,8 +293,8 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       currentUser, login, logout, updateUserProfile,
-      equipment, addEquipment, updateEquipmentStatus, deleteEquipment,
-      facilities, addFacility, updateFacilityAvailability, deleteFacility,
+      equipment, addEquipment, updateEquipment, updateEquipmentStatus, deleteEquipment,
+      facilities, addFacility, updateFacility, updateFacilityAvailability, deleteFacility, addFacilityWithEquipment,
       bookings, addBooking, updateBookingStatus,
       users, registerUser, updateUserStatus,
     }}>

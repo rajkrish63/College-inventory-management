@@ -45,36 +45,36 @@ export function FacilitiesPage() {
   }, [passedData, filtered]);
 
   // Dynamic header content mapping
-  const headerContent: Record<string, { title: string, desc: string, icon: any, color: string }> = {
+  const headerContent: Record<string, { title: string, desc: string, icon: any, image: string }> = {
     "Chemistry": {
       title: "Chemistry Research Laboratory",
       desc: "Advanced facilities for synthesis, structural analysis, and characterization of novel chemical compounds and materials.",
       icon: FlaskConical,
-      color: "from-blue-600 to-indigo-600"
+      image: "https://images.unsplash.com/photo-1554475901-4538ddfbccc2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1742&q=80"
     },
     "Biotechnology": {
       title: "Biotechnology & Life Sciences",
       desc: "Cutting-edge tools for molecular biology, genetics, and bio-processing research in a sterile environment.",
       icon: Dna,
-      color: "from-emerald-600 to-teal-600"
+      image: "https://images.unsplash.com/photo-1579165466741-7f35e4755660?ixlib=rb-4.0.3&auto=format&fit=crop&w=1740&q=80"
     },
     "Electronics": {
       title: "Electronics & Embedded Systems",
       desc: "State-of-the-art labs for circuit design, semiconductor testing, and the development of next-gen electronics.",
       icon: Cpu,
-      color: "from-orange-600 to-amber-600"
+      image: "https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=1740&q=80"
     },
     "Materials Science": {
       title: "Advanced Materials Science",
       desc: "Exploring the characterization and development of advanced functional materials and nanotechnology.",
       icon: Atom,
-      color: "from-purple-600 to-fuchsia-600"
+      image: "https://images.unsplash.com/photo-1520038410233-7141be7b6f97?ixlib=rb-4.0.3&auto=format&fit=crop&w=1746&q=80"
     },
     "Computing": {
       title: "HPC & Computing Center",
       desc: "High-performance computing resources, AI research, and big data analysis for complex scientific simulations.",
       icon: Monitor,
-      color: "from-slate-700 to-slate-900"
+      image: "https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=1740&q=80"
     }
   };
 
@@ -82,12 +82,23 @@ export function FacilitiesPage() {
   return (
     <div>
       {/* Unified Header */}
-      <section className="bg-gradient-to-br from-blue-50 to-cyan-50 py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-8xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50">
+        {/* Background Image Container */}
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20 mix-blend-multiply"
+          style={{
+            backgroundImage: currentHeader ? `url('${currentHeader.image}')` : "url('https://images.unsplash.com/photo-1563207153-f4087858c8ec?ixlib=rb-4.0.3&auto=format&fit=crop&w=1740&q=80')",
+          }}
+        />
+        {/* White overlay for extra readability */}
+        <div className="absolute inset-0 bg-white/60 z-0 backdrop-blur-[2px]" />
+
+        {/* Content */}
+        <div className="relative z-10 py-24 px-4 sm:px-6 lg:px-8 max-w-8xl mx-auto text-center">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 drop-shadow-sm">
             {currentHeader ? currentHeader.title : "Research Facilities"}
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-700 max-w-3xl mx-auto drop-shadow-sm font-medium">
             {currentHeader ? currentHeader.desc : "Browse our state-of-the-art facilities designed to support cutting-edge research across multiple disciplines"}
           </p>
         </div>

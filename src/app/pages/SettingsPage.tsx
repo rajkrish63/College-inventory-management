@@ -5,7 +5,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useAppContext } from "../context/AppContext";
 
-export function SettingsPage() {
+export function SettingsContent() {
     const { currentUser, updateUserProfile, users } = useAppContext();
     const [name, setName] = useState(currentUser?.name || "");
     const [email, setEmail] = useState(currentUser?.email || "");
@@ -55,8 +55,8 @@ export function SettingsPage() {
                 </p>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden flex-1 overflow-y-auto custom-scrollbar">
-                <div className="p-8 space-y-8">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex-1 overflow-y-auto custom-scrollbar">
+                <div className="p-6 space-y-6">
                     {/* Profile Picture Section */}
                     <div className="flex flex-col items-center gap-6 py-4 border-b border-gray-50 pb-10">
                         <div className="relative group">
@@ -180,4 +180,8 @@ export function SettingsPage() {
             </div>
         </div>
     );
+}
+
+export function SettingsPage() {
+    return <SettingsContent />;
 }

@@ -6,10 +6,7 @@ import { Button } from "./ui/button";
 import { useAppContext } from "../context/AppContext";
 import { UserMenu } from "./UserMenu";
 
-const navLinks = [
-  { path: "/equipment", label: "Equipment" },
-  { path: "/booking", label: "Book Access" },
-];
+const navLinks: { path: string; label: string }[] = [];
 
 interface NavigationProps {
   onMenuClick?: () => void;

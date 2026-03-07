@@ -8,6 +8,7 @@ import { Textarea } from "../components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "../components/ui/select";
+import { Pencil, X, Upload } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
 import { useLocation } from "react-router";
 
@@ -46,6 +47,8 @@ export function BookingPage() {
     quantity: 1,
     date: "", timeSlot: "", purpose: "",
   });
+  const [idProofUrl, setIdProofUrl] = useState<string | null>(null);
+  const [idProofConfirmed, setIdProofConfirmed] = useState(false);
 
   // Update extraPersons array when persons count changes
   useEffect(() => {
@@ -96,6 +99,22 @@ export function BookingPage() {
   const resetForm = () => {
     setSubmitted(false);
     setFormData({ name: "", email: "", department: "", type: "equipment", facility: "", equipFacility: "", equipCategory: "", equipment: "", quantity: 1, date: "", timeSlot: "", purpose: "" });
+    setIdProofUrl(null);
+    setIdProofConfirmed(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setIdProofUrl(url);
+      setIdProofConfirmed(false);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setIdProofUrl(null);
+    setIdProofConfirmed(false);
   };
   // The submitted dialog is now rendered as a modal at the end of the return statement.
 
@@ -343,30 +362,84 @@ export function BookingPage() {
                 </div>
 
                 <h3 className="font-semibold text-lg">Additional Information</h3>
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <Label htmlFor="idProof">Upload ID Proof *</Label>
-                  <label
-                    htmlFor="idProof"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all group"
-                  >
-                    <div className="flex flex-col items-center justify-center gap-1 text-center">
-                      <svg className="h-8 w-8 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-sm text-gray-500 group-hover:text-blue-600">
-                        <span className="font-medium">Click to upload</span> your ID proof
-                      </p>
-                      <p className="text-xs text-gray-400">Aadhar card, Passport, or Institution ID (JPG, PNG, PDF)</p>
-                    </div>
-                    <input id="idProof" type="file" accept="image/*,.pdf" className="hidden" required />
-                  </label>
-                </div>
+                  {!idProofUrl ? (
+                    <label
+                      htmlFor="idProof"
+                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all group"
+                    >
+                      <div className="flex flex-col items-center justify-center gap-1 text-center">
+                        <svg className="h-8 w-8 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-sm text-gray-500 group-hover:text-blue-600">
+                          <span className="font-medium">Click to upload</span> your ID proof
+                        </p>
+                        <p className="text-xs text-gray-400">Aadhar card, Passport, or Institution ID (JPG, PNG, PDF)</p>
+                      </div>
+                      <input id="idProof" type="file" accept="image/*,.pdf" className="hidden" required onChange={handleFileChange} />
+                    </label>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="relative w-full aspect-video sm:aspect-auto sm:h-48 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 shadow-inner group">
+                        <img src={idProofUrl} alt="ID Proof Preview" className="w-full h-full object-contain" />
 
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
-                  <span className="text-amber-500 text-lg mt-0.5">⚠️</span>
-                  <div>
-                    <h3 className="font-semibold text-amber-800 text-sm">ID Proof Required</h3>
-                    <p className="text-xs text-amber-700 mt-0.5">Please carry a valid government-issued ID (Aadhar card, passport, or institution ID) on the day of your visit. Access will not be granted without verification.</p>
+                        {/* Overlay Controls */}
+                        {!idProofConfirmed && (
+                          <div className="absolute top-3 right-3 flex gap-2">
+                            <label htmlFor="idProof" className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-full shadow-lg cursor-pointer transition-all hover:scale-110">
+                              <Pencil className="w-4 h-4" />
+                              <input id="idProof" type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileChange} />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={handleRemoveFile}
+                              className="p-2 bg-white/90 hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-full shadow-lg transition-all hover:scale-110"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+
+                        {idProofConfirmed && (
+                          <div className="absolute inset-0 bg-green-600/10 backdrop-blur-[1px] flex items-center justify-center">
+                            <div className="bg-white/90 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-green-700 font-bold border border-green-200">
+                              <CheckCircle className="w-5 h-5" />
+                              ID Proof Confirmed
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {!idProofConfirmed ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 bg-blue-50/30 font-bold h-11 rounded-xl"
+                          onClick={() => setIdProofConfirmed(true)}
+                        >
+                          Confirm & Lock Upload
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="w-full text-gray-500 hover:text-gray-700 text-xs font-bold"
+                          onClick={() => setIdProofConfirmed(false)}
+                        >
+                          Change Image
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3 mt-4">
+                    <span className="text-amber-500 text-lg mt-0.5">⚠️</span>
+                    <div>
+                      <h3 className="font-semibold text-amber-800 text-sm">ID Proof Required</h3>
+                      <p className="text-xs text-amber-700 mt-0.5">Please carry a valid government-issued ID (Aadhar card, passport, or institution ID) on the day of your visit. Access will not be granted without verification.</p>
+                    </div>
                   </div>
                 </div>
 

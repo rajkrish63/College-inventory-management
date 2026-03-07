@@ -6,7 +6,7 @@ import {
   LayoutDashboard, CalendarCheck, FlaskConical, Building2, Users,
   PackagePlus, PlusCircle, CheckCircle, XCircle, Clock, Trash2,
   Search, Shield, Activity, ChevronRight, LogOut, ToggleLeft, ToggleRight, Filter,
-  LucideIcon, Settings, User
+  LucideIcon, Settings, User, PencilLine
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -19,7 +19,9 @@ import { useAppContext } from "../../context/AppContext";
 import type { Booking, Equipment, Facility, AppUser } from "../../context/AppContext";
 import { LogoutModal } from "../../components/LogoutModal";
 
-type Section = "dashboard" | "bookings" | "equipment" | "facilities" | "users";
+import { SettingsContent } from "../SettingsPage";
+
+type Section = "dashboard" | "bookings" | "equipment" | "facilities" | "users" | "settings";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -121,9 +123,24 @@ function DashboardSection({ setSection }: { setSection: (s: Section) => void }) 
 
         {/* Quick Stats */}
         <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">Equipment Status</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
+          <Card className="gap-0">
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Resource Overview</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Facilities</p>
+              {[
+                { label: "Available", count: facilities.filter((f) => f.availability === "Available").length, color: "bg-green-500" },
+                { label: "Limited", count: facilities.filter((f) => f.availability === "Limited").length, color: "bg-amber-500" },
+                { label: "Unavailable", count: facilities.filter((f) => f.availability === "Unavailable").length, color: "bg-red-500" },
+              ].map((item) => (
+                <div key={`fac-${item.label}`} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                    <span className="text-sm text-gray-600">{item.label}</span>
+                  </div>
+                  <span className="font-semibold text-sm">{item.count}</span>
+                </div>
+              ))}
+              <p className="text-[10px] font-bold uppercase text-gray-400 tracking-wider pt-2 border-t">Equipment</p>
               {[
                 { label: "Available", count: equipment.filter((e) => e.status === "Available").length, color: "bg-green-500" },
                 { label: "In Use", count: equipment.filter((e) => e.status === "In Use").length, color: "bg-orange-500" },
@@ -139,31 +156,7 @@ function DashboardSection({ setSection }: { setSection: (s: Section) => void }) 
               ))}
               <div className="pt-2 border-t">
                 <Button size="sm" variant="outline" className="w-full" asChild>
-                  <Link to="/admin/add-equipment"><PackagePlus className="h-3.5 w-3.5 mr-1.5" />Add Equipment</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">Facility Status</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                { label: "Available", count: facilities.filter((f) => f.availability === "Available").length, color: "bg-green-500" },
-                { label: "Limited", count: facilities.filter((f) => f.availability === "Limited").length, color: "bg-amber-500" },
-                { label: "Unavailable", count: facilities.filter((f) => f.availability === "Unavailable").length, color: "bg-red-500" },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
-                    <span className="text-sm text-gray-600">{item.label}</span>
-                  </div>
-                  <span className="font-semibold text-sm">{item.count}</span>
-                </div>
-              ))}
-              <div className="pt-2 border-t">
-                <Button size="sm" variant="outline" className="w-full" asChild>
-                  <Link to="/admin/add-facility"><PlusCircle className="h-3.5 w-3.5 mr-1.5" />Add Facility</Link>
+                  <Link to="/admin/add-facility"><PlusCircle className="h-3.5 w-3.5 mr-1.5" />Add Resources</Link>
                 </Button>
               </div>
             </CardContent>
@@ -184,7 +177,7 @@ function BookingsSection() {
     const q = search.toLowerCase();
     return (b.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q) || b.email.toLowerCase().includes(q))
       && (statusFilter === "All" || b.status === statusFilter);
-  });
+  }).sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
 
   return (
     <div className="space-y-4">
@@ -212,19 +205,20 @@ function BookingsSection() {
       </div>
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-t-xl">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-gray-50">
-                  {["Request ID", "Researcher", "Resource", "Date & Time", "Status", "Actions"].map((h) => (
-                    <th key={h} className={`text-left py-3 px-4 font-medium text-gray-600 ${h === "Resource" ? "hidden md:table-cell" : h === "Date & Time" ? "hidden lg:table-cell" : ""}`}>{h}</th>
+                  {["Researcher", "Resource", "Date & Time", "Requested Date", "Status", "Actions"].map((h, i, arr) => (
+                    <th key={h} className={`${h === "Actions" ? "text-right pr-12" : "text-left"} py-3 px-4 font-medium text-gray-600 ${h === "Resource" ? "hidden md:table-cell" : h === "Date & Time" || h === "Requested Date" ? "hidden lg:table-cell" : ""} ${i === 0 ? "rounded-tl-xl" : ""} ${i === arr.length - 1 ? "rounded-tr-xl" : ""}`}>
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((b: Booking) => (
                   <tr key={b.id} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="py-3 px-4"><span className="font-mono text-xs text-blue-600 font-medium">{b.id}</span></td>
                     <td className="py-3 px-4">
                       <p className="font-medium text-gray-900">{b.name}</p>
                       <p className="text-xs text-gray-400">{b.email}</p>
@@ -236,29 +230,30 @@ function BookingsSection() {
                       <p className="text-gray-400 text-xs capitalize">{b.type}</p>
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500">{b.date}<br />{b.timeSlot}</td>
+                    <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500">
+                      {new Date(b.submittedAt).toLocaleDateString()}
+                      <br />
+                      {!isNaN(new Date(b.submittedAt).getTime()) && b.submittedAt.includes('T') && new Date(b.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </td>
                     <td className="py-3 px-4"><StatusPill status={b.status} /></td>
                     <td className="py-3 px-4">
-                      <div className="flex items-center justify-end gap-1 flex-wrap">
-                        {b.status === "Pending" && (
-                          <>
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-green-600 hover:bg-green-50 text-xs" onClick={() => updateBookingStatus(b.id, "Approved")}>
-                              <CheckCircle className="h-3.5 w-3.5 mr-1" />Approve
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:bg-red-50 text-xs" onClick={() => updateBookingStatus(b.id, "Rejected")}>
-                              <XCircle className="h-3.5 w-3.5 mr-1" />Reject
-                            </Button>
-                          </>
-                        )}
-                        {b.status === "Approved" && (
-                          <Button size="sm" variant="ghost" className="h-7 px-2 text-amber-600 hover:bg-amber-50 text-xs" onClick={() => updateBookingStatus(b.id, "Pending")}>
-                            <Clock className="h-3.5 w-3.5 mr-1" />Reset
-                          </Button>
-                        )}
-                        {b.status === "Rejected" && (
-                          <Button size="sm" variant="ghost" className="h-7 px-2 text-green-600 hover:bg-green-50 text-xs" onClick={() => updateBookingStatus(b.id, "Approved")}>
-                            <CheckCircle className="h-3.5 w-3.5 mr-1" />Approve
-                          </Button>
-                        )}
+                      <div className="flex justify-end pr-2">
+                        <div className="flex items-center gap-3 flex-wrap w-max">
+                          {(b.status === "Pending" || b.status === "Approved" || b.status === "Rejected") && (
+                            <>
+                              {b.status !== "Approved" && (
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-green-600 hover:bg-green-50 text-xs" onClick={() => updateBookingStatus(b.id, "Approved")}>
+                                  <CheckCircle className="h-3.5 w-3.5 mr-1" />Approve
+                                </Button>
+                              )}
+                              {b.status !== "Rejected" && (
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:bg-red-50 text-xs" onClick={() => updateBookingStatus(b.id, "Rejected")}>
+                                  <XCircle className="h-3.5 w-3.5 mr-1" />Reject
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -280,7 +275,7 @@ function BookingsSection() {
 
 // ── Equipment ─────────────────────────────────────────────────────────────────
 function EquipmentSection() {
-  const { equipment, updateEquipmentStatus, deleteEquipment } = useAppContext();
+  const { equipment, facilities, updateEquipmentStatus, deleteEquipment } = useAppContext();
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
@@ -334,11 +329,17 @@ function EquipmentSection() {
                       <p className="text-gray-400 text-xs">{e.model}</p>
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500 max-w-36">
-                      <span className="truncate block">{e.location}</span>
+                      <span className="truncate block text-slate-700 font-medium">
+                        {facilities.find(f => e.location.startsWith(f.name))?.name || "Unknown Facility"}
+                      </span>
+                      <span className="truncate block text-[10px]">{e.location.split(" - ").slice(1).join(" - ") || e.location}</span>
                     </td>
                     <td className="py-3 px-4"><StatusPill status={e.status} /></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-blue-600 hover:bg-blue-50" asChild title="Edit equipment">
+                          <Link to={`/admin/edit-equipment/${e.id}`}><PencilLine className="h-4 w-4" /></Link>
+                        </Button>
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-blue-600 hover:bg-blue-50" onClick={() => cycleStatus(e)} title="Cycle status">
                           {e.status === "Available" ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                         </Button>
@@ -372,15 +373,29 @@ function EquipmentSection() {
 }
 
 // ── Facilities ────────────────────────────────────────────────────────────────
-function FacilitiesSection() {
-  const { facilities, updateFacilityAvailability, deleteFacility } = useAppContext();
+function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section) => void }) {
+  const { facilities, equipment, updateFacilityAvailability, deleteFacility, updateEquipmentStatus } = useAppContext();
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [availFilter, setAvailFilter] = useState("All");
+  const [catFilter, setCatFilter] = useState("All");
+  const [eqStatusFilter, setEqStatusFilter] = useState("All");
 
-  const filtered = facilities.filter((f) =>
-    f.name.toLowerCase().includes(search.toLowerCase()) ||
-    f.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const categories = Array.from(new Set(facilities.map(f => f.category)));
+
+  const filtered = facilities.filter((f) => {
+    const matchesSearch = f.name.toLowerCase().includes(search.toLowerCase()) || f.category.toLowerCase().includes(search.toLowerCase());
+    const matchesAvail = availFilter === "All" || f.availability === availFilter;
+    const matchesCat = catFilter === "All" || f.category === catFilter;
+
+    // For equipment status filter, check if facility has equipment matching that status
+    if (eqStatusFilter !== "All") {
+      const hasMatchingEq = equipment.some(e => e.location.startsWith(f.name) && e.status === eqStatusFilter);
+      return matchesSearch && matchesAvail && matchesCat && hasMatchingEq;
+    }
+
+    return matchesSearch && matchesAvail && matchesCat;
+  });
 
   const cycleAvail = (f: Facility) => {
     const cycle: Facility["availability"][] = ["Available", "Limited", "Unavailable"];
@@ -395,12 +410,49 @@ function FacilitiesSection() {
           <p className="text-sm text-gray-500">{facilities.length} facilities registered</p>
         </div>
         <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>
-          <Link to="/admin/add-facility"><PlusCircle className="h-4 w-4 mr-2" />Add Facility</Link>
+          <Link to="/admin/add-facility"><PlusCircle className="h-4 w-4 mr-2" />Add Resources</Link>
         </Button>
       </div>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input placeholder="Search facilities..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input placeholder="Search facilities..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={availFilter} onValueChange={setAvailFilter}>
+          <SelectTrigger className="w-full sm:w-40">
+            <Filter className="h-4 w-4 mr-2 text-gray-400" /><SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All Status</SelectItem>
+            <SelectItem value="Available">Available</SelectItem>
+            <SelectItem value="Limited">Limited</SelectItem>
+            <SelectItem value="Unavailable">Unavailable</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={catFilter} onValueChange={setCatFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <Filter className="h-4 w-4 mr-2 text-gray-400" /><SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All Categories</SelectItem>
+            {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={eqStatusFilter} onValueChange={setEqStatusFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <Filter className="h-4 w-4 mr-2 text-gray-400" /><SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All Equipment</SelectItem>
+            <SelectItem value="Available">Equip: Available</SelectItem>
+            <SelectItem value="In Use">Equip: In Use</SelectItem>
+            <SelectItem value="Maintenance">Equip: Maintenance</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" className="w-full sm:w-auto ml-auto text-blue-600 border-blue-200 bg-blue-50/50 hover:bg-blue-50 hover:text-blue-700 h-10 px-4" onClick={() => setActiveSection("equipment")}>
+          <FlaskConical className="h-4 w-4 mr-2" />
+          Equipment
+        </Button>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         {filtered.map((f: Facility) => (
@@ -421,15 +473,50 @@ function FacilitiesSection() {
                   {f.features.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {f.features.slice(0, 3).map((feat) => (
-                        <Badge key={feat} variant="secondary" className="text-xs">{feat}</Badge>
+                        <Badge key={feat} variant="secondary" className="text-[10px]">{feat}</Badge>
                       ))}
                       {f.features.length > 3 && (
-                        <Badge variant="secondary" className="text-xs">+{f.features.length - 3}</Badge>
+                        <Badge variant="secondary" className="text-[10px]">+{f.features.length - 3}</Badge>
                       )}
                     </div>
                   )}
+
+                  {/* Associated Equipment grouped by Category */}
+                  {(() => {
+                    const associated = equipment.filter(e => e.location.startsWith(f.name));
+                    if (associated.length === 0) return null;
+
+                    const grouped = associated.reduce((acc, eq) => {
+                      if (!acc[eq.category]) acc[eq.category] = [];
+                      acc[eq.category].push(eq);
+                      return acc;
+                    }, {} as Record<string, Equipment[]>);
+
+                    return (
+                      <div className="mt-4 pt-3 border-t border-gray-100/60 space-y-2">
+                        <p className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">Associated Equipment</p>
+                        <div className="space-y-2">
+                          {Object.entries(grouped).map(([cat, eqs]) => (
+                            <div key={cat} className="space-y-1">
+                              <p className="text-[9px] font-semibold text-blue-500/80 leading-none">{cat}</p>
+                              <div className="flex flex-wrap gap-1">
+                                {eqs.map(eq => (
+                                  <Badge key={eq.id} variant="outline" className="text-[9px] bg-white border-blue-100 text-slate-600 h-5 px-1.5 font-medium">
+                                    {eq.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="flex flex-col gap-2 flex-shrink-0">
+                  <Button size="sm" variant="outline" className="h-8 px-2 text-xs" asChild>
+                    <Link to={`/admin/edit-facility/${f.id}`}><PencilLine className="h-4 w-4 text-blue-600 mr-1" />Edit</Link>
+                  </Button>
                   <Button size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => cycleAvail(f)}>
                     {f.availability === "Available" ? <ToggleRight className="h-4 w-4 text-green-600 mr-1" /> : <ToggleLeft className="h-4 w-4 text-gray-400 mr-1" />}
                     Toggle
@@ -561,8 +648,7 @@ export function AdminPage() {
   const navItems: { id: Section; label: string; icon: LucideIcon; badge?: number }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "bookings", label: "Bookings", icon: CalendarCheck, badge: pendingCount },
-    { id: "equipment", label: "Equipment", icon: FlaskConical },
-    { id: "facilities", label: "Facilities", icon: Building2 },
+    { id: "facilities", label: "Resources", icon: Building2 },
     { id: "users", label: "Users", icon: Users },
   ];
 
@@ -603,18 +689,19 @@ export function AdminPage() {
               </Sidebar.Section>
             </Sidebar.Nav>
             <Sidebar.Profile
-              onSettingsClick={() => setIsSettingsOpen(true)}
+              onSettingsClick={() => setActiveSection("settings")}
               onLogoutClick={() => setIsLogoutOpen(true)}
             />
           </Sidebar>
 
-          <main className="flex-1 overflow-y-auto custom-scrollbar bg-gray-50/50">
-            <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <main className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-br from-blue-50 to-cyan-50">
+            <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
               {activeSection === "dashboard" && <DashboardSection setSection={setActiveSection} />}
               {activeSection === "bookings" && <BookingsSection />}
               {activeSection === "equipment" && <EquipmentSection />}
-              {activeSection === "facilities" && <FacilitiesSection />}
+              {activeSection === "facilities" && <FacilitiesSection setActiveSection={setActiveSection} />}
               {activeSection === "users" && <UsersSection />}
+              {activeSection === "settings" && <SettingsContent />}
             </div>
           </main>
         </div>

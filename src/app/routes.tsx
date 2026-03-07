@@ -7,8 +7,7 @@ import { BookingPage } from "./pages/BookingPage";
 import { BookingsPage } from "./pages/BookingsPage";
 import { AuthPage } from "./pages/AuthPage";
 import { AdminPage } from "./pages/admin/AdminPage";
-import { AddEquipmentPage } from "./pages/admin/AddEquipmentPage";
-import { AddFacilityPage } from "./pages/admin/AddFacilityPage";
+import { CombinedAddPage } from "./pages/admin/CombinedAddPage";
 import { SettingsPage } from "./pages/SettingsPage";
 
 export const router = createBrowserRouter([
@@ -27,8 +26,10 @@ export const router = createBrowserRouter([
       { path: "my-bookings", Component: BookingsPage },
       { path: "settings", Component: SettingsPage },
       { path: "admin", Component: AdminPage },
-      { path: "admin/add-equipment", Component: AddEquipmentPage },
-      { path: "admin/add-facility", Component: AddFacilityPage },
+      { path: "admin/add-equipment", Component: CombinedAddPage },
+      { path: "admin/edit-equipment/:id", Component: CombinedAddPage },
+      { path: "admin/add-facility", Component: CombinedAddPage },
+      { path: "admin/edit-facility/:id", Component: CombinedAddPage },
     ],
   },
 ]);
