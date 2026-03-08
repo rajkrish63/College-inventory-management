@@ -297,7 +297,7 @@ export function CombinedAddPage() {
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
-                                <Button variant="ghost" className="text-slate-500 hover:bg-slate-200/50" onClick={() => navigate("/admin")}>Cancel</Button>
+                                <Button variant="ghost" className="text-slate-500 hover:bg-slate-200/50" onClick={() => navigate("/admin", { state: { activeTab: "facilities" } })}>Cancel</Button>
                                 <Button
                                     onClick={handleSubmit}
                                     disabled={loading}

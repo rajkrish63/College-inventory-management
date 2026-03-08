@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { Navbar } from "../../components/Navbar";
 import { Sidebar } from "../../components/Sidebar";
 import {
@@ -15,9 +15,12 @@ import { Input } from "../../components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "../../components/ui/select";
+import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
+import { Label } from "../../components/ui/label";
 import { useAppContext } from "../../context/AppContext";
 import type { Booking, Equipment, Facility, AppUser } from "../../context/AppContext";
 import { LogoutModal } from "../../components/LogoutModal";
+import { Modal } from "../../components/Modal";
 
 import { SettingsContent } from "../SettingsPage";
 
@@ -169,9 +172,23 @@ function DashboardSection({ setSection }: { setSection: (s: Section) => void }) 
 
 // ── Bookings ──────────────────────────────────────────────────────────────────
 function BookingsSection() {
-  const { bookings, updateBookingStatus } = useAppContext();
+  const { bookings, users, updateBookingStatus } = useAppContext();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+
+  // Confirmation state
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean, bookingId: string | null, action: "Approved" | "Rejected" | null }>({
+    open: false,
+    bookingId: null,
+    action: null
+  });
+
+  const handleConfirmAction = () => {
+    if (confirmModal.bookingId && confirmModal.action) {
+      updateBookingStatus(confirmModal.bookingId, confirmModal.action);
+    }
+    setConfirmModal({ open: false, bookingId: null, action: null });
+  };
 
   const filtered = bookings.filter((b) => {
     const q = search.toLowerCase();
@@ -209,8 +226,8 @@ function BookingsSection() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-gray-50">
-                  {["Researcher", "Resource", "Date & Time", "Requested Date", "Status", "Actions"].map((h, i, arr) => (
-                    <th key={h} className={`${h === "Actions" ? "text-right pr-12" : "text-left"} py-3 px-4 font-medium text-gray-600 ${h === "Resource" ? "hidden md:table-cell" : h === "Date & Time" || h === "Requested Date" ? "hidden lg:table-cell" : ""} ${i === 0 ? "rounded-tl-xl" : ""} ${i === arr.length - 1 ? "rounded-tr-xl" : ""}`}>
+                  {["Researcher", "Resource", "Date & Time", "Requested Date", "ID Proof", "Status", "Actions"].map((h, i, arr) => (
+                    <th key={h} className={`${h === "Actions" ? "text-right pr-12" : "text-left"} py-3 px-4 font-medium text-gray-600 ${h === "Resource" || h === "ID Proof" ? "hidden md:table-cell" : h === "Date & Time" || h === "Requested Date" ? "hidden lg:table-cell" : ""} ${i === 0 ? "rounded-tl-xl" : ""} ${i === arr.length - 1 ? "rounded-tr-xl" : ""}`}>
                       {h}
                     </th>
                   ))}
@@ -235,6 +252,16 @@ function BookingsSection() {
                       <br />
                       {!isNaN(new Date(b.submittedAt).getTime()) && b.submittedAt.includes('T') && new Date(b.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
+                    <td className="py-3 px-4 hidden md:table-cell text-xs">
+                      {(() => {
+                        const user = users.find(u => u.email === b.email);
+                        return user?.idProof ? (
+                          <Badge variant="outline" className="font-mono text-[10px] bg-slate-50">{user.idProof}</Badge>
+                        ) : (
+                          <span className="text-gray-400 italic">Not provided</span>
+                        );
+                      })()}
+                    </td>
                     <td className="py-3 px-4"><StatusPill status={b.status} /></td>
                     <td className="py-3 px-4">
                       <div className="flex justify-end pr-2">
@@ -242,12 +269,12 @@ function BookingsSection() {
                           {(b.status === "Pending" || b.status === "Approved" || b.status === "Rejected") && (
                             <>
                               {b.status !== "Approved" && (
-                                <Button size="sm" variant="ghost" className="h-7 px-2 text-green-600 hover:bg-green-50 text-xs" onClick={() => updateBookingStatus(b.id, "Approved")}>
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-green-600 hover:bg-green-50 text-xs" onClick={() => setConfirmModal({ open: true, bookingId: b.id, action: "Approved" })}>
                                   <CheckCircle className="h-3.5 w-3.5 mr-1" />Approve
                                 </Button>
                               )}
                               {b.status !== "Rejected" && (
-                                <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:bg-red-50 text-xs" onClick={() => updateBookingStatus(b.id, "Rejected")}>
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:bg-red-50 text-xs" onClick={() => setConfirmModal({ open: true, bookingId: b.id, action: "Rejected" })}>
                                   <XCircle className="h-3.5 w-3.5 mr-1" />Reject
                                 </Button>
                               )}
@@ -269,6 +296,38 @@ function BookingsSection() {
           </div>
         </CardContent>
       </Card>
+
+      <Modal open={confirmModal.open} onOpenChange={(open) => setConfirmModal(prev => ({ ...prev, open }))} className="max-w-md">
+        <Modal.Header
+          title={`Confirm ${confirmModal.action === "Approved" ? "Approval" : "Rejection"}`}
+          subtitle={`Are you sure you want to ${confirmModal.action === "Approved" ? "approve" : "reject"} this booking request?`}
+          icon={confirmModal.action === "Approved" ? CheckCircle : XCircle}
+          onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+        />
+        <Modal.Content className="text-center py-4">
+          <p className="text-sm text-gray-600 mb-2">
+            You are about to <strong className={confirmModal.action === "Approved" ? "text-emerald-600" : "text-red-600"}>{confirmModal.action?.toLowerCase()}</strong> the request:
+          </p>
+          <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 inline-block">
+            <p className="font-mono text-xs font-bold text-gray-700">{confirmModal.bookingId}</p>
+          </div>
+        </Modal.Content>
+        <Modal.Footer className="flex-col sm:flex-row gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmAction}
+            className={`w-full sm:w-auto ${confirmModal.action === "Approved" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}`}
+          >
+            Confirm {confirmModal.action}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
@@ -297,7 +356,6 @@ function EquipmentSection() {
           <h2 className="text-xl font-bold text-gray-900">Equipment Catalog</h2>
           <p className="text-sm text-gray-500">{equipment.length} instruments registered</p>
         </div>
-        <Button asChild><Link to="/admin/add-equipment"><PackagePlus className="h-4 w-4 mr-2" />Add Equipment</Link></Button>
       </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -397,11 +455,6 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
     return matchesSearch && matchesAvail && matchesCat;
   });
 
-  const cycleAvail = (f: Facility) => {
-    const cycle: Facility["availability"][] = ["Available", "Limited", "Unavailable"];
-    updateFacilityAvailability(f.id, cycle[(cycle.indexOf(f.availability) + 1) % 3]);
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
@@ -460,23 +513,23 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
             <CardContent className="pt-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 text-sm mb-1 truncate">{f.name}</h3>
-                  <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500 mb-2">
+                  <h3 className="font-semibold text-gray-900 text-base mb-1 truncate">{f.name}</h3>
+                  <div className="flex items-center gap-2 flex-wrap text-sm text-gray-500 mb-2">
                     <span>{f.room}</span>
                     <span>·</span>
                     <span>{f.capacity}</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline" className="text-xs">{f.category}</Badge>
+                    <Badge variant="outline" className="text-sm">{f.category}</Badge>
                     <StatusPill status={f.availability} />
                   </div>
                   {f.features.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {f.features.slice(0, 3).map((feat) => (
-                        <Badge key={feat} variant="secondary" className="text-[10px]">{feat}</Badge>
+                        <Badge key={feat} variant="secondary" className="text-xs">{feat}</Badge>
                       ))}
                       {f.features.length > 3 && (
-                        <Badge variant="secondary" className="text-[10px]">+{f.features.length - 3}</Badge>
+                        <Badge variant="secondary" className="text-xs">+{f.features.length - 3}</Badge>
                       )}
                     </div>
                   )}
@@ -494,14 +547,14 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
 
                     return (
                       <div className="mt-4 pt-3 border-t border-gray-100/60 space-y-2">
-                        <p className="text-[9px] font-bold uppercase text-gray-400 tracking-wider">Associated Equipment</p>
+                        <p className="text-xs font-bold uppercase text-gray-400 tracking-wider">Associated Equipment</p>
                         <div className="space-y-2">
                           {Object.entries(grouped).map(([cat, eqs]) => (
                             <div key={cat} className="space-y-1">
-                              <p className="text-[9px] font-semibold text-blue-500/80 leading-none">{cat}</p>
-                              <div className="flex flex-wrap gap-1">
+                              <p className="text-xs font-semibold text-blue-500/80 leading-none">{cat}</p>
+                              <div className="flex flex-wrap gap-1 mt-1.5">
                                 {eqs.map(eq => (
-                                  <Badge key={eq.id} variant="outline" className="text-[9px] bg-white border-blue-100 text-slate-600 h-5 px-1.5 font-medium">
+                                  <Badge key={eq.id} variant="outline" className="text-xs bg-white border-blue-100 text-slate-600 h-6 px-2 font-medium">
                                     {eq.name}
                                   </Badge>
                                 ))}
@@ -514,13 +567,27 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
                   })()}
                 </div>
                 <div className="flex flex-col gap-2 flex-shrink-0">
-                  <Button size="sm" variant="outline" className="h-8 px-2 text-xs" asChild>
-                    <Link to={`/admin/edit-facility/${f.id}`}><PencilLine className="h-4 w-4 text-blue-600 mr-1" />Edit</Link>
+                  <Button size="sm" variant="outline" className="h-8 px-3 text-sm" asChild>
+                    <Link to={`/admin/edit-facility/${f.id}`}><PencilLine className="h-4 w-4 text-blue-600 mr-1.5" />Edit</Link>
                   </Button>
-                  <Button size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => cycleAvail(f)}>
-                    {f.availability === "Available" ? <ToggleRight className="h-4 w-4 text-green-600 mr-1" /> : <ToggleLeft className="h-4 w-4 text-gray-400 mr-1" />}
-                    Toggle
-                  </Button>
+                  <RadioGroup
+                    value={f.availability}
+                    onValueChange={(val: any) => updateFacilityAvailability(f.id, val)}
+                    className="flex flex-col gap-2 mt-1 border border-gray-100 rounded-md p-2.5 bg-gray-50/50"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Available" id={`avail-${f.id}`} className="h-4 w-4" />
+                      <Label htmlFor={`avail-${f.id}`} className="text-xs cursor-pointer font-medium text-emerald-700">Available</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Limited" id={`limited-${f.id}`} className="h-4 w-4" />
+                      <Label htmlFor={`limited-${f.id}`} className="text-xs cursor-pointer font-medium text-amber-700">Limited</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Unavailable" id={`unavail-${f.id}`} className="h-4 w-4" />
+                      <Label htmlFor={`unavail-${f.id}`} className="text-xs cursor-pointer font-medium text-rose-700">Unavailable</Label>
+                    </div>
+                  </RadioGroup>
                   {confirmDelete === f.id ? (
                     <div className="flex gap-1">
                       <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => { deleteFacility(f.id); setConfirmDelete(null); }}>Del</Button>
@@ -577,6 +644,7 @@ function UsersSection() {
                   <th className="text-left py-3 px-4 font-medium text-gray-600">Name</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden md:table-cell">Role</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden lg:table-cell">Institution</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 hidden xl:table-cell">ID Proof</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden sm:table-cell">Joined</th>
                 </tr>
               </thead>
@@ -592,6 +660,13 @@ function UsersSection() {
                       <p className="text-gray-400 text-xs">{u.department}</p>
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500">{u.institution}</td>
+                    <td className="py-3 px-4 hidden xl:table-cell text-xs">
+                      {u.idProof ? (
+                        <Badge variant="outline" className="font-mono text-[10px] bg-slate-50">{u.idProof}</Badge>
+                      ) : (
+                        <span className="text-gray-400 italic">Not provided</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 hidden sm:table-cell text-xs text-gray-500">{u.joinedAt}</td>
                   </tr>
                 ))}
@@ -614,7 +689,13 @@ function UsersSection() {
 export function AdminPage() {
   const { currentUser, logout, bookings } = useAppContext();
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState<Section>("dashboard");
+  const location = useLocation();
+
+  // Use state from router if available, otherwise default to dashboard
+  const [activeSection, setActiveSection] = useState<Section>(
+    location.state?.activeTab || "dashboard"
+  );
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const pendingCount = bookings.filter((b) => b.status === "Pending").length;
@@ -701,7 +782,7 @@ export function AdminPage() {
               {activeSection === "equipment" && <EquipmentSection />}
               {activeSection === "facilities" && <FacilitiesSection setActiveSection={setActiveSection} />}
               {activeSection === "users" && <UsersSection />}
-              {activeSection === "settings" && <SettingsContent />}
+              {activeSection === "settings" && <SettingsContent onBack={() => setActiveSection("dashboard")} />}
             </div>
           </main>
         </div>

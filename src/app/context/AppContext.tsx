@@ -52,6 +52,8 @@ export interface AppUser {
   institution: string;
   role: string;
   phone: string;
+  // Make idProof optional to avoid breaking existing users without proofs yet
+  idProof?: string;
   status: "Active" | "Pending" | "Inactive";
   joinedAt: string;
   profilePic?: string;
@@ -105,11 +107,11 @@ const initialBookings: Booking[] = [
 ];
 
 const initialUsers: AppUser[] = [
-  { id: 1, firstName: "Sarah", lastName: "Chen", email: "s.chen@mit.edu", password: "pass1234", department: "Chemistry", institution: "MIT", role: "Principal Investigator", phone: "+1-617-555-0101", status: "Active", joinedAt: "2025-09-15" },
-  { id: 2, firstName: "James", lastName: "Wright", email: "j.wright@stanford.edu", password: "pass1234", department: "Materials Science", institution: "Stanford University", role: "Professor", phone: "+1-650-555-0202", status: "Active", joinedAt: "2025-10-01" },
-  { id: 3, firstName: "Aisha", lastName: "Patel", email: "a.patel@caltech.edu", password: "pass1234", department: "Molecular Biology", institution: "Caltech", role: "Post-Doctoral Researcher", phone: "+1-626-555-0303", status: "Active", joinedAt: "2025-11-20" },
-  { id: 4, firstName: "Marcus", lastName: "Lee", email: "m.lee@berkeley.edu", password: "pass1234", department: "Physics", institution: "UC Berkeley", role: "PhD Student", phone: "+1-510-555-0404", status: "Pending", joinedAt: "2026-01-10" },
-  { id: 5, firstName: "Elena", lastName: "Rossi", email: "e.rossi@harvard.edu", password: "pass1234", department: "Biochemistry", institution: "Harvard University", role: "Associate Professor", phone: "+1-617-555-0505", status: "Inactive", joinedAt: "2025-08-05" },
+  { id: 1, firstName: "Sarah", lastName: "Chen", email: "s.chen@mit.edu", password: "pass1234", department: "Chemistry", institution: "MIT", role: "Principal Investigator", phone: "+1-617-555-0101", idProof: "MIT-ID-77291A", status: "Active", joinedAt: "2025-09-15" },
+  { id: 2, firstName: "James", lastName: "Wright", email: "j.wright@stanford.edu", password: "pass1234", department: "Materials Science", institution: "Stanford University", role: "Professor", phone: "+1-650-555-0202", idProof: "STAN-EMP-0092", status: "Active", joinedAt: "2025-10-01" },
+  { id: 3, firstName: "Aisha", lastName: "Patel", email: "a.patel@caltech.edu", password: "pass1234", department: "Molecular Biology", institution: "Caltech", role: "Post-Doctoral Researcher", phone: "+1-626-555-0303", idProof: "CAL-PD-9921", status: "Active", joinedAt: "2025-11-20" },
+  { id: 4, firstName: "Marcus", lastName: "Lee", email: "m.lee@berkeley.edu", password: "pass1234", department: "Physics", institution: "UC Berkeley", role: "PhD Student", phone: "+1-510-555-0404", idProof: "UCB-GS-4412", status: "Pending", joinedAt: "2026-01-10" },
+  { id: 5, firstName: "Elena", lastName: "Rossi", email: "e.rossi@harvard.edu", password: "pass1234", department: "Biochemistry", institution: "Harvard University", role: "Associate Professor", phone: "+1-617-555-0505", idProof: "HARV-FAC-0112", status: "Inactive", joinedAt: "2025-08-05" },
   { id: 6, firstName: "David", lastName: "Kim", email: "d.kim@gatech.edu", password: "pass1234", department: "Electrical Engineering", institution: "Georgia Tech", role: "Graduate Researcher", phone: "+1-404-555-0606", status: "Pending", joinedAt: "2026-03-03" },
 ];
 
@@ -120,7 +122,14 @@ interface AppContextType {
   currentUser: AuthUser | null;
   login: (email: string, password: string) => { success: boolean; error?: string };
   logout: () => void;
-  updateUserProfile: (updates: { name?: string; email?: string; phone?: string; password?: string; profilePic?: string; }) => void;
+  updateUserProfile: (updates: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+    profilePic?: string;
+    idProof?: string;
+  }) => void;
 
   // Facilities
   facilities: Facility[];
@@ -187,7 +196,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
 
   const logout = () => setCurrentUser(null);
 
-  const updateUserProfile = (updates: { name?: string; email?: string; phone?: string; password?: string; profilePic?: string; }) => {
+  const updateUserProfile = (updates: { name?: string; email?: string; phone?: string; password?: string; profilePic?: string; idProof?: string; }) => {
     if (!currentUser) return;
 
     // Update currentUser state (only name, email, and profilePic are exposed to AuthUser)
@@ -211,7 +220,8 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
             email: updates.email || u.email,
             ...(updates.phone && { phone: updates.phone }),
             ...(updates.password && { password: updates.password }),
-            ...(updates.profilePic !== undefined && { profilePic: updates.profilePic })
+            ...(updates.profilePic !== undefined && { profilePic: updates.profilePic }),
+            ...(updates.idProof !== undefined && { idProof: updates.idProof })
           };
         }
         return u;
