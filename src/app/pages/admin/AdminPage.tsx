@@ -724,30 +724,15 @@ export function AdminPage() {
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
   const pendingCount = bookings.filter((b) => b.status === "Pending").length;
 
-  // Redirect non-admins
+  // Redirect non-admins silently
+  useState(() => {
+    if (!currentUser || currentUser.role !== "admin") {
+      navigate("/");
+    }
+  });
+
   if (!currentUser || currentUser.role !== "admin") {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
-        <Card className="max-w-md w-full text-center shadow-2xl">
-          <CardHeader>
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-3">
-              <Shield className="h-8 w-8 text-red-600" />
-            </div>
-            <CardTitle className="text-xl">Admin Access Required</CardTitle>
-            <CardDescription>You need to sign in as an administrator to access this page.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="bg-slate-50 rounded-lg p-3 text-xs text-gray-600 text-left">
-              <p className="font-medium mb-1">Admin Credentials:</p>
-              <p>Email: <span className="font-mono">clginventorymanagement@gmail.com</span></p>
-              <p>Password: <span className="font-mono">password1234@mce</span></p>
-            </div>
-            <Button className="w-full" onClick={() => navigate("/login")}>Sign In as Admin</Button>
-            <Button variant="outline" className="w-full" onClick={() => navigate("/")}>Back to Home</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return null;
   }
 
   const navItems: { id: Section; label: string; icon: LucideIcon; badge?: number }[] = [
