@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/select";
 import { useAppContext } from "../../context/AppContext";
 import { getEquipmentCategories } from "../../services/firestoreService";
+import { SuccessModal } from "./components/SuccessModal";
 import categoryMapData from "../../data/categories.json";
 
 const categoryMap: Record<string, string[]> = categoryMapData;
@@ -135,30 +136,12 @@ export function AddEquipmentPage() {
     if (done) {
         return (
             <div className="h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-cyan-50">
-                <Card className="max-w-md w-full text-center shadow-xl border-none bg-white/80 backdrop-blur-sm">
-                    <CardHeader className="pb-2">
-                        <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                            <CheckCircle className="h-10 w-10 text-green-600" />
-                        </div>
-                        <CardTitle className="text-2xl">{isEditMode ? "Changes Saved!" : "Equipment Added!"}</CardTitle>
-                        <CardDescription className="text-base mt-1">
-                            <span className="font-semibold text-gray-900">"{addedName}"</span> {isEditMode ? "has been updated." : "has been added to the catalog."}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3 pt-4">
-                        {!isEditMode && (
-                            <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={resetForm}>
-                                <Plus className="h-4 w-4 mr-2" /> Add Another Equipment
-                            </Button>
-                        )}
-                        <Button variant="outline" className="w-full" asChild>
-                            <Link to="/admin">Back to Admin Dashboard</Link>
-                        </Button>
-                        <Button variant="ghost" className="w-full" asChild>
-                            <Link to="/equipment">View Equipment Catalog</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
+                <SuccessModal
+                    isEditMode={isEditMode}
+                    savedName={addedName}
+                    savedCount={0}
+                    onReset={resetForm}
+                />
             </div>
         );
     }

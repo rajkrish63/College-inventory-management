@@ -93,7 +93,7 @@ function DashboardSection({ setSection }: { setSection: (s: Section) => void }) 
         <StatCard label="Total Bookings" value={bookings.length} sub={`${approved} approved`} icon={CalendarCheck} color="bg-blue-500" />
         <StatCard label="Pending Approvals" value={pending} sub="awaiting review" icon={Clock} color="bg-amber-500" />
         <StatCard label="Equipment Units" value={equipment.length} sub={`${available} available`} icon={FlaskConical} color="bg-green-500" />
-        <StatCard label="Researchers" value={users.length} sub={`${activeUsers} active`} icon={Users} color="bg-purple-500" />
+        <StatCard label="Facilities" value={facilities.length} sub="Research Laboratories" icon={Building2} color="bg-purple-500" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
