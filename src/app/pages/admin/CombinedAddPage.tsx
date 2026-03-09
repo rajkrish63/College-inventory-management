@@ -1,28 +1,42 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router";
-import { Building2, Save, Clock, LayoutDashboard, Shield, CalendarCheck, FlaskConical, Users, ChevronRight, PencilLine, CheckCircle2, Plus } from "lucide-react";
+import { Building2, Save, Clock, LayoutDashboard, Shield, CalendarCheck, FlaskConical, Users, ChevronRight, PencilLine, Plus } from "lucide-react";
 import { Navbar } from "../../components/Navbar";
 import { Sidebar } from "../../components/Sidebar";
 import { LogoutModal } from "../../components/LogoutModal";
-import { useAppContext } from "../../context/AppContext";
+import { useAppContext, Equipment } from "../../context/AppContext";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { cn } from "../../components/ui/utils";
 
 import { FacilityForm } from "./components/FacilityForm";
 import { EquipmentForm, EquipmentState, createBlankEq } from "./components/EquipmentForm";
+import { SuccessModal } from "./components/SuccessModal";
+import { getEquipmentCategories } from "../../services/firestoreService";
+import categoryMapData from "../../data/categories.json";
+
+const categoryMap: Record<string, string[]> = categoryMapData;
 
 const defaultImages: Record<string, string> = {
-    Chemistry: "https://images.unsplash.com/photo-1707944746058-4da338d0f827?w=800&q=80",
-    Biotechnology: "https://images.unsplash.com/photo-1732400333616-8efa4f385a03?w=800&q=80",
-    "Materials Science": "https://images.unsplash.com/photo-1765830403209-a5eceac4c198?w=800&q=80",
-    Electronics: "https://images.unsplash.com/photo-1759866042499-d0b3e9d87ceb?w=800&q=80",
-    Computing: "https://images.unsplash.com/photo-1765830403209-a5eceac4c198?w=800&q=80",
+    CHEMISTRY_LAB: "https://images.unsplash.com/photo-1707944746058-4da338d0f827?w=800&q=80",
+    BIOMEDICAL_LAB: "https://images.unsplash.com/photo-1732400333616-8efa4f385a03?w=800&q=80",
+    EEE_LAB: "https://images.unsplash.com/photo-1765830403209-a5eceac4c198?w=800&q=80",
+    ECE_LAB: "https://images.unsplash.com/photo-1759866042499-d0b3e9d87ceb?w=800&q=80",
+    COMPUTER_LAB: "https://images.unsplash.com/photo-1765830403209-a5eceac4c198?w=800&q=80",
     Other: "https://images.unsplash.com/photo-1707944746058-4da338d0f827?w=800&q=80",
 };
 
 export function CombinedAddPage() {
-    const { addFacilityWithEquipment, facilities, equipment, updateFacility, updateEquipment, addEquipment } = useAppContext();
+    const {
+        addFacilityWithEquipment,
+        facilities,
+        equipment,
+        updateFacility,
+        updateEquipment,
+        addEquipment,
+        updateEquipmentBatch,
+        logout,
+        bookings
+    } = useAppContext();
     const navigate = useNavigate();
     const { id } = useParams();
     const isEditMode = !!id;
@@ -31,11 +45,14 @@ export function CombinedAddPage() {
     const [savedName, setSavedName] = useState("");
     const [savedCount, setSavedCount] = useState(0);
     const [loading, setLoading] = useState(false);
+    const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const pendingCount = bookings.filter(b => b.status === "Pending").length;
 
     // Facility State
     const [fac, setFac] = useState({
-        name: "", category: "", description: "", capacity: "", room: "",
-        availability: "Available" as "Available" | "Limited" | "Unavailable",
+        facilityName: "", facilityCategory: "", spaceDescription: "", capacity: 0 as number, roomLocation: "",
+        availabilityStatus: "Available" as "Available" | "Limited" | "Unavailable",
     });
     const [featInput, setFeatInput] = useState("");
     const [features, setFeatures] = useState<string[]>([]);
@@ -43,37 +60,53 @@ export function CombinedAddPage() {
 
     // Equipment List State
     const [equipments, setEquipments] = useState<EquipmentState[]>([]);
+    const [availableEqCats, setAvailableEqCats] = useState<string[]>([]);
+    const [loadingText, setLoadingText] = useState("Saving...");
+
+    useEffect(() => {
+        if (fac.facilityCategory) {
+            getEquipmentCategories(fac.facilityCategory).then(cats => {
+                if (cats.length > 0) {
+                    setAvailableEqCats(cats);
+                } else {
+                    setAvailableEqCats((categoryMap[fac.facilityCategory] || []).filter(Boolean));
+                }
+            });
+        } else {
+            setAvailableEqCats([]);
+        }
+    }, [fac.facilityCategory]);
 
     useEffect(() => {
         if (isEditMode && facilities.length > 0) {
-            const facility = facilities.find(f => f.id === parseInt(id));
+            const facility = facilities.find(f => String(f.id) === id);
             if (facility) {
                 setFac({
-                    name: facility.name,
-                    category: facility.category,
-                    description: facility.description,
+                    facilityName: facility.facilityName,
+                    facilityCategory: facility.facilityCategory,
+                    spaceDescription: facility.spaceDescription,
                     capacity: facility.capacity,
-                    room: facility.room,
-                    availability: facility.availability,
+                    roomLocation: facility.roomLocation,
+                    availabilityStatus: facility.availabilityStatus,
                 });
-                setFeatures(facility.features);
+                setFeatures(facility.keyFacilityFeatures);
 
                 // Load associated equipment
-                const associated = equipment.filter(e => e.location.startsWith(facility.name));
+                const associated = equipment.filter(e => String(e.facilityId) === id);
                 if (associated.length > 0) {
                     setEquipments(associated.map(e => ({
                         id: e.id,
                         dbId: e.id,
-                        name: e.name,
-                        category: e.category,
+                        equipmentName: e.equipmentName,
+                        equipmentCategory: e.equipmentCategory,
                         manufacturer: e.manufacturer,
-                        model: e.model,
-                        status: e.status,
-                        description: e.description,
+                        modelNumber: e.modelNumber,
+                        initialStatus: e.initialStatus,
+                        instrumentDescription: e.instrumentDescription,
                         specInput: "",
-                        specs: e.specifications,
+                        technicalSpecifications: e.technicalSpecifications,
                         appInput: "",
-                        apps: e.applications,
+                        researchApplications: e.researchApplications,
                         expanded: false,
                         errors: {},
                     })));
@@ -82,7 +115,10 @@ export function CombinedAddPage() {
         }
     }, [isEditMode, id, facilities, equipment]);
 
-    const handleFacChange = (k: string, v: string) => {
+    const handleFacChange = (k: string, v: any) => {
+        if (k === "facilityCategory" && v !== fac.facilityCategory) {
+            setEquipments(prev => prev.map(eq => ({ ...eq, equipmentCategory: "" })));
+        }
         setFac(prev => ({ ...prev, [k]: v }));
         if (facErrors[k]) setFacErrors(prev => {
             const next = { ...prev };
@@ -104,27 +140,26 @@ export function CombinedAddPage() {
     };
 
     const addEq = () => setEquipments(prev => [...prev, createBlankEq()]);
-
     const removeEq = (eqId: string | number) => setEquipments(prev => prev.filter(e => e.id !== eqId));
 
     const validate = () => {
         const fErrs: Record<string, string> = {};
-        if (!fac.name.trim()) fErrs.name = "Required";
-        if (!fac.category) fErrs.category = "Required";
-        if (!fac.description.trim()) fErrs.description = "Required";
-        if (!fac.capacity.trim()) fErrs.capacity = "Required";
-        if (!fac.room.trim()) fErrs.room = "Required";
+        if (!fac.facilityName.trim()) fErrs.facilityName = "Required";
+        if (!fac.facilityCategory) fErrs.facilityCategory = "Required";
+        if (!fac.spaceDescription.trim()) fErrs.spaceDescription = "Required";
+        if (!fac.capacity) fErrs.capacity = "Required";
+        if (!fac.roomLocation.trim()) fErrs.roomLocation = "Required";
 
         let hasEqErrs = false;
         const updatedEqs = equipments.map(eq => {
-            const isTouched = eq.name.trim() || eq.manufacturer.trim() || eq.model.trim() || eq.description.trim() || eq.category;
+            const isTouched = eq.equipmentName.trim() || eq.manufacturer.trim() || eq.modelNumber.trim() || eq.instrumentDescription.trim() || eq.equipmentCategory;
             const eErrs: Record<string, string> = {};
             if (isTouched) {
-                if (!eq.name.trim()) eErrs.name = "Required";
-                if (!eq.category) eErrs.category = "Required";
+                if (!eq.equipmentName.trim()) eErrs.equipmentName = "Required";
+                if (!eq.equipmentCategory) eErrs.equipmentCategory = "Required";
                 if (!eq.manufacturer.trim()) eErrs.manufacturer = "Required";
-                if (!eq.model.trim()) eErrs.model = "Required";
-                if (!eq.description.trim()) eErrs.description = "Required";
+                if (!eq.modelNumber.trim()) eErrs.modelNumber = "Required";
+                if (!eq.instrumentDescription.trim()) eErrs.instrumentDescription = "Required";
             }
             if (Object.keys(eErrs).length > 0) hasEqErrs = true;
             return { ...eq, errors: eErrs, expanded: Object.keys(eErrs).length > 0 ? true : eq.expanded };
@@ -138,106 +173,81 @@ export function CombinedAddPage() {
 
     const handleSubmit = async () => {
         if (!validate()) return;
-
         setLoading(true);
-        // Simulate premium delay
-        await new Promise(r => setTimeout(r, 1000));
 
-        const filledEqs = equipments.filter(eq => eq.name.trim() || eq.manufacturer.trim() || eq.model.trim() || eq.description.trim() || eq.category);
+        const filledEqs = equipments.filter(eq => eq.equipmentName.trim() || eq.manufacturer.trim() || eq.modelNumber.trim() || eq.instrumentDescription.trim() || eq.equipmentCategory);
+        setLoadingText(`Saving ${fac.facilityName} & ${filledEqs.length} items...`);
 
         const eqData = filledEqs.map(e => ({
-            name: e.name,
-            category: e.category,
+            equipmentName: e.equipmentName,
+            equipmentCategory: e.equipmentCategory,
             manufacturer: e.manufacturer,
-            model: e.model,
-            status: e.status,
-            description: e.description,
-            specifications: e.specs,
-            applications: e.apps,
-            location: `${fac.name} - ${fac.room}`
+            modelNumber: e.modelNumber,
+            initialStatus: e.initialStatus,
+            instrumentDescription: e.instrumentDescription,
+            technicalSpecifications: e.technicalSpecifications,
+            researchApplications: e.researchApplications,
+            facilityId: id || ""
         }));
 
         if (isEditMode) {
-            updateFacility(parseInt(id!), { ...fac, features });
+            const updatedFac = { ...fac, keyFacilityFeatures: features };
 
-            // Handle equipment items in edit mode
-            filledEqs.forEach(eq => {
-                const data = {
-                    name: eq.name,
-                    category: eq.category,
+            // Prepare batch updates for equipment
+            const eqUpdates = filledEqs.map(eq => ({
+                id: eq.dbId,
+                data: {
+                    equipmentName: eq.equipmentName,
+                    equipmentCategory: eq.equipmentCategory,
                     manufacturer: eq.manufacturer,
-                    model: eq.model,
-                    status: eq.status,
-                    description: eq.description,
-                    specifications: eq.specs,
-                    applications: eq.apps,
-                    location: `${fac.name} - ${fac.room}`
-                };
+                    modelNumber: eq.modelNumber,
+                    initialStatus: eq.initialStatus,
+                    instrumentDescription: eq.instrumentDescription,
+                    technicalSpecifications: eq.technicalSpecifications,
+                    researchApplications: eq.researchApplications,
+                    facilityId: id!
+                } as Equipment
+            }));
 
-                if (eq.dbId) {
-                    updateEquipment(eq.dbId, data);
-                } else {
-                    addEquipment(data);
-                }
-            });
+            // Sync all changes in parallel
+            await Promise.all([
+                updateFacility(id!, updatedFac),
+                updateEquipmentBatch(id!, eqUpdates)
+            ]);
+
+            setFac(updatedFac); // Update local state to show change immediately
         } else {
-            addFacilityWithEquipment({
+            setLoadingText("Creating facility...");
+            await addFacilityWithEquipment({
                 ...fac,
-                features,
-                image: defaultImages[fac.category] || defaultImages.Other
+                keyFacilityFeatures: features,
+                createdAt: new Date().toISOString()
             }, eqData);
         }
 
-        setSavedName(fac.name);
+        setSavedName(fac.facilityName);
         setSavedCount(filledEqs.length);
         setDone(true);
         setLoading(false);
     };
 
     const resetForm = () => {
-        setFac({ name: "", category: "", description: "", capacity: "", room: "", availability: "Available" });
+        setFac({ facilityName: "", facilityCategory: "", spaceDescription: "", capacity: 0, roomLocation: "", availabilityStatus: "Available" });
         setFeatures([]);
         setEquipments([]);
         setDone(false);
     };
 
     if (done) return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-            <Card className="max-w-md w-full border-none shadow-2xl bg-white/80 backdrop-blur-md overflow-hidden animate-in fade-in zoom-in duration-300">
-                <div className="h-2 bg-emerald-500" />
-                <CardHeader className="text-center pt-8">
-                    <div className="mx-auto w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
-                        <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-                    </div>
-                    <CardTitle className="text-2xl font-bold text-slate-900">{isEditMode ? "Changes Saved!" : "Facility Created!"}</CardTitle>
-                    <CardDescription className="text-base mt-2">
-                        <span className="font-semibold text-emerald-700">"{savedName}"</span>
-                        {savedCount > 0
-                            ? ` with ${savedCount} equipment items has been successfully ${isEditMode ? "updated" : "added"}.`
-                            : ` has been successfully ${isEditMode ? "updated" : "added"}.`}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 pb-8 pt-4">
-                    {!isEditMode && (
-                        <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={resetForm}>
-                            <Plus className="h-4 w-4 mr-2" /> Add Another Facility
-                        </Button>
-                    )}
-                    <Button variant="outline" className="w-full" asChild>
-                        <Link to="/admin">Back to Admin Dashboard</Link>
-                    </Button>
-                    <Button variant="ghost" className="w-full" asChild>
-                        <Link to="/facilities">View All Facilities</Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
+        <SuccessModal
+            isEditMode={isEditMode}
+            savedName={savedName}
+            savedCount={savedCount}
+            onReset={resetForm}
+        />
     );
 
-    const [isLogoutOpen, setIsLogoutOpen] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const { logout, bookings } = useAppContext();
-    const pendingCount = bookings.filter(b => b.status === "Pending").length;
+
 
     const handleLogout = () => { logout(); navigate("/"); };
 
@@ -301,10 +311,18 @@ export function CombinedAddPage() {
                                 <Button
                                     onClick={handleSubmit}
                                     disabled={loading}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 shadow-sm"
                                 >
-                                    {loading ? <Clock className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
-                                    {isEditMode ? "Save Changes" : "Save All"}
+                                    {loading ? (
+                                        <>
+                                            <Clock className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                                            {loadingText}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="h-3.5 w-3.5 mr-1.5" />
+                                            {isEditMode ? "Save Changes" : "Save All"}
+                                        </>
+                                    )}
                                 </Button>
                             </div>
                         </div>
@@ -331,6 +349,7 @@ export function CombinedAddPage() {
                                     updateEq={updateEq}
                                     removeEq={removeEq}
                                     addEq={addEq}
+                                    availableEqCats={availableEqCats}
                                 />
                             </div>
                         </main>
@@ -339,7 +358,7 @@ export function CombinedAddPage() {
                         <div className="shrink-0 p-4 flex items-center z-20">
                             <div className="flex items-center gap-6 text-xs text-slate-400 font-medium px-4">
                                 <div className="flex items-center gap-2">
-                                    <div className={cn("w-2 h-2 rounded-full", fac.name ? "bg-emerald-500" : "bg-slate-300")} />
+                                    <div className={cn("w-2 h-2 rounded-full", fac.facilityName ? "bg-emerald-500" : "bg-slate-300")} />
                                     Facility Data
                                 </div>
                                 <div className="flex items-center gap-2">

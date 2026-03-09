@@ -7,7 +7,17 @@ import { Badge } from "../components/ui/badge";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useAppContext } from "../context/AppContext";
 
-const allCategories = ["All", "Chemistry", "Biotechnology", "Materials Science", "Electronics", "Computing"];
+const allCategories = ["All", "CHEMISTRY_LAB", "BIOMEDICAL_LAB", "EEE_LAB", "ECE_LAB", "PHYSICS_LAB", "COMPUTER_LAB"];
+
+const categoryDisplayMap: Record<string, string> = {
+  "All": "All Research Areas",
+  "CHEMISTRY_LAB": "Chemistry",
+  "BIOMEDICAL_LAB": "Biotechnology",
+  "EEE_LAB": "Electrical Engineering",
+  "ECE_LAB": "Electronics",
+  "PHYSICS_LAB": "Materials Science",
+  "COMPUTER_LAB": "Computing"
+};
 
 export function FacilitiesPage() {
   const { facilities, equipment } = useAppContext();
@@ -36,7 +46,7 @@ export function FacilitiesPage() {
 
   const filtered = activeCategory === "All"
     ? facilities
-    : facilities.filter((f) => f.category === activeCategory);
+    : facilities.filter((f) => f.facilityCategory === activeCategory);
 
   // Initialize equipment category if on a specific facility page
   useEffect(() => {
@@ -46,31 +56,37 @@ export function FacilitiesPage() {
 
   // Dynamic header content mapping
   const headerContent: Record<string, { title: string, desc: string, icon: any, image: string }> = {
-    "Chemistry": {
+    "CHEMISTRY_LAB": {
       title: "Chemistry Research Laboratory",
       desc: "Advanced facilities for synthesis, structural analysis, and characterization of novel chemical compounds and materials.",
       icon: FlaskConical,
       image: "https://images.unsplash.com/photo-1554475901-4538ddfbccc2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1742&q=80"
     },
-    "Biotechnology": {
+    "BIOMEDICAL_LAB": {
       title: "Biotechnology & Life Sciences",
       desc: "Cutting-edge tools for molecular biology, genetics, and bio-processing research in a sterile environment.",
       icon: Dna,
       image: "https://images.unsplash.com/photo-1579165466741-7f35e4755660?ixlib=rb-4.0.3&auto=format&fit=crop&w=1740&q=80"
     },
-    "Electronics": {
+    "ECE_LAB": {
       title: "Electronics & Embedded Systems",
       desc: "State-of-the-art labs for circuit design, semiconductor testing, and the development of next-gen electronics.",
       icon: Cpu,
       image: "https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=1740&q=80"
     },
-    "Materials Science": {
+    "EEE_LAB": {
+      title: "Electrical Engineering Systems",
+      desc: "Integrated power systems, renewable energy testing, and electrical machinery characterization.",
+      icon: Zap,
+      image: "https://images.unsplash.com/photo-1765830403209-a5eceac4c198?w=800&q=80"
+    },
+    "PHYSICS_LAB": {
       title: "Advanced Materials Science",
       desc: "Exploring the characterization and development of advanced functional materials and nanotechnology.",
       icon: Atom,
       image: "https://images.unsplash.com/photo-1520038410233-7141be7b6f97?ixlib=rb-4.0.3&auto=format&fit=crop&w=1746&q=80"
     },
-    "Computing": {
+    "COMPUTER_LAB": {
       title: "HPC & Computing Center",
       desc: "High-performance computing resources, AI research, and big data analysis for complex scientific simulations.",
       icon: Monitor,
@@ -133,7 +149,12 @@ export function FacilitiesPage() {
                       Equipment Categories
                     </div>
 
-                    {filtered[0].features.map((feature, idx) => {
+                    {Array.from(new Set(
+                      equipment
+                        .filter(e => e.facilityId === filtered[0].id)
+                        .map(e => e.equipmentCategory)
+                        .filter(Boolean)
+                    )).map((feature, idx) => {
                       const isActive = selectedEquipCategory === feature;
                       return (
                         <button
@@ -162,7 +183,7 @@ export function FacilitiesPage() {
                     <div className="flex items-center gap-2 text-sm text-gray-400">
                       <span>Facilities</span>
                       <span>/</span>
-                      <span className="text-gray-600 font-medium">{activeCategory}</span>
+                      <span className="text-gray-600 font-medium">{categoryDisplayMap[activeCategory] || activeCategory}</span>
                       <span>/</span>
                       <span className="text-blue-600 font-bold uppercase tracking-tight">{selectedEquipCategory}</span>
                     </div>
@@ -181,28 +202,28 @@ export function FacilitiesPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-8 max-w-4xl">
                     {equipment
                       .filter((e: any) =>
-                        e.name.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
-                        e.category.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
-                        selectedEquipCategory.toLowerCase().includes(e.model.toLowerCase().split(' ')[0])
+                        e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
+                        e.equipmentCategory.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
+                        selectedEquipCategory.toLowerCase().includes(e.modelNumber.toLowerCase().split(' ')[0])
                       )
                       .map((item: any) => (
                         <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
                           <CardHeader className="pb-2">
                             <div className="flex items-start justify-between gap-2">
-                              <CardTitle className="text-xl font-bold text-gray-900">{item.name}</CardTitle>
+                              <CardTitle className="text-xl font-bold text-gray-900">{item.equipmentName}</CardTitle>
                               <Badge
-                                className={`${item.status === "Available" ? "bg-emerald-500" :
-                                  item.status === "In Use" ? "bg-blue-500" : "bg-rose-500"
+                                className={`${item.initialStatus === "Available" ? "bg-emerald-500" :
+                                  item.initialStatus === "In Use" ? "bg-blue-500" : "bg-rose-500"
                                   } text-white border-0 shadow-sm`}
                               >
-                                {item.status}
+                                {item.initialStatus}
                               </Badge>
                             </div>
                             <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-0 w-fit">
-                              {item.category}
+                              {item.equipmentCategory}
                             </Badge>
                             <CardDescription className="text-gray-600 leading-relaxed mt-2 text-sm">
-                              {item.description}
+                              {item.instrumentDescription}
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-4">
@@ -213,18 +234,15 @@ export function FacilitiesPage() {
                               </div>
                               <div className="flex items-center justify-between text-sm">
                                 <span className="text-gray-500">Model:</span>
-                                <span className="font-medium text-gray-900">{item.model}</span>
+                                <span className="font-medium text-gray-900">{item.modelNumber}</span>
                               </div>
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-500">Location:</span>
-                                <span className="font-medium text-gray-900">{item.location}</span>
-                              </div>
+                              {/* Location removed from equipment doc, could be derived from facility */}
                             </div>
 
                             <div className="space-y-2">
                               <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Key Specifications</h4>
                               <div className="flex flex-wrap gap-1.5">
-                                {item.specifications.map((spec: string, idx: number) => (
+                                {(item.technicalSpecifications || []).map((spec: string, idx: number) => (
                                   <Badge key={idx} variant="outline" className="text-[10px] font-medium border-gray-200 text-gray-500">
                                     {spec}
                                   </Badge>
@@ -235,7 +253,7 @@ export function FacilitiesPage() {
                             <div className="space-y-2">
                               <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Applications</h4>
                               <div className="flex flex-wrap gap-1.5">
-                                {item.applications.map((app: string, idx: number) => (
+                                {(item.researchApplications || []).map((app: string, idx: number) => (
                                   <Badge key={idx} variant="outline" className="text-[10px] font-medium border-gray-200 text-gray-500">
                                     {app}
                                   </Badge>
@@ -245,14 +263,14 @@ export function FacilitiesPage() {
                           </CardContent>
                           <CardFooter className="pt-2">
                             <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm" asChild
-                              disabled={item.status === "Maintenance"}>
+                              disabled={item.initialStatus === "Maintenance"}>
                               <Link to="/booking" state={{
-                                equipment: item.name,
-                                equipCategory: item.category,
-                                equipFacility: passedData?.name ?? "",
+                                equipment: item.equipmentName,
+                                equipCategory: item.equipmentCategory,
+                                equipFacility: passedData?.facilityName ?? "",
                                 type: "equipment",
                               }}>
-                                {item.status === "Maintenance" ? "Under Maintenance" : "Reserve This Equipment"}
+                                {item.initialStatus === "Maintenance" ? "Under Maintenance" : "Reserve This Equipment"}
                               </Link>
                             </Button>
                           </CardFooter>
@@ -261,8 +279,8 @@ export function FacilitiesPage() {
                   </div>
 
                   {equipment.filter((e: any) =>
-                    e.name.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
-                    e.category.toLowerCase().includes(selectedEquipCategory.toLowerCase())
+                    e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
+                    e.equipmentCategory.toLowerCase().includes(selectedEquipCategory.toLowerCase())
                   ).length === 0 && (
                       <div className="py-20 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
                         <Monitor className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -278,29 +296,29 @@ export function FacilitiesPage() {
                     <Card key={facility.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
                       <div className="relative h-56 overflow-hidden">
                         <ImageWithFallback
-                          src={facility.image}
-                          alt={facility.name}
+                          src={facility.image || ""}
+                          alt={facility.facilityName}
                           className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500"
                         />
                         <div className="absolute top-4 right-4">
                           <Badge
-                            className={`${facility.availability === "Available" ? "bg-emerald-500" :
-                              facility.availability === "Limited" ? "bg-amber-500" : "bg-rose-500"
+                            className={`${facility.availabilityStatus === "Available" ? "bg-emerald-500" :
+                              facility.availabilityStatus === "Limited" ? "bg-amber-500" : "bg-rose-500"
                               } text-white border-0 shadow-sm`}
                           >
-                            {facility.availability}
+                            {facility.availabilityStatus}
                           </Badge>
                         </div>
                       </div>
                       <CardHeader className="pb-2">
                         <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-xl font-bold text-gray-900">{facility.name}</CardTitle>
+                          <CardTitle className="text-xl font-bold text-gray-900">{facility.facilityName}</CardTitle>
                         </div>
                         <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-0 w-fit">
-                          {facility.category}
+                          {facility.facilityCategory}
                         </Badge>
                         <CardDescription className="text-gray-600 leading-relaxed mt-2 text-sm">
-                          {facility.description}
+                          {facility.spaceDescription}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
@@ -309,7 +327,7 @@ export function FacilitiesPage() {
                           <span>Maximum capacity: {facility.capacity}</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5 pt-1">
-                          {facility.features.map((feature, idx) => (
+                          {(facility.keyFacilityFeatures || []).map((feature, idx) => (
                             <Badge key={idx} variant="outline" className="text-[11px] font-medium border-gray-200 text-gray-500">
                               {feature}
                             </Badge>
@@ -318,9 +336,9 @@ export function FacilitiesPage() {
                       </CardContent>
                       <CardFooter className="pt-2">
                         <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm" asChild
-                          disabled={facility.availability === "Unavailable"}>
-                          <Link to="/booking" state={{ facility: facility.name, type: "facility" }}>
-                            {facility.availability === "Unavailable" ? "Temporarily Closed" : "Reserve This Facility"}
+                          disabled={facility.availabilityStatus === "Unavailable"}>
+                          <Link to="/booking" state={{ facility: facility.facilityName, type: "facility" }}>
+                            {facility.availabilityStatus === "Unavailable" ? "Temporarily Closed" : "Reserve This Facility"}
                           </Link>
                         </Button>
                       </CardFooter>
@@ -335,7 +353,7 @@ export function FacilitiesPage() {
                     <Microscope className="w-8 h-8" />
                   </div>
                   <h3 className="text-lg font-medium text-gray-900">No facilities found</h3>
-                  <p className="text-gray-500 max-w-xs mx-auto mt-1">We couldn't find any facilities in the {activeCategory} category.</p>
+                  <p className="text-gray-500 max-w-xs mx-auto mt-1">We couldn't find any facilities in the {categoryDisplayMap[activeCategory] || activeCategory} category.</p>
                 </div>
               )}
             </div>

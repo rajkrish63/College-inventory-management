@@ -7,16 +7,16 @@ import { Textarea } from "../../../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { cn } from "../../../components/ui/utils";
 
-export const facCats = ["Chemistry", "Biotechnology", "Materials Science", "Electronics", "Computing", "Physics", "Biology", "Engineering", "Other"];
+export const facCats = ["CHEMISTRY_LAB", "BIOMEDICAL_LAB", "EEE_LAB", "ECE_LAB", "PHYSICS_LAB", "COMPUTER_LAB", "Other"];
 export const facAvails = ["Available", "Limited", "Unavailable"];
 
 interface FacilityFormProps {
     isEditMode: boolean;
     fac: {
-        name: string; category: string; description: string; capacity: string; room: string;
-        availability: "Available" | "Limited" | "Unavailable";
+        facilityName: string; facilityCategory: string; spaceDescription: string; capacity: number; roomLocation: string;
+        availabilityStatus: "Available" | "Limited" | "Unavailable";
     };
-    handleFacChange: (field: string, value: string) => void;
+    handleFacChange: (field: string, value: any) => void;
     facErrors: Record<string, string>;
     featInput: string;
     setFeatInput: (val: string) => void;
@@ -36,6 +36,7 @@ export function FacilityForm({
     addFeat,
     removeFeat
 }: FacilityFormProps) {
+
     return (
         <section className="w-1/2 flex flex-col overflow-hidden">
             <div className="flex flex-col h-full">
@@ -54,18 +55,18 @@ export function FacilityForm({
                             <Input
                                 id="fac-name"
                                 placeholder="e.g., Advanced Chemistry Laboratory"
-                                value={fac.name}
-                                onChange={(e) => handleFacChange("name", e.target.value)}
-                                className={cn("bg-slate-50/50 focus:bg-white border-slate-200 h-11", facErrors.name && "border-red-400")}
+                                value={fac.facilityName}
+                                onChange={(e) => handleFacChange("facilityName", e.target.value)}
+                                className={cn("bg-slate-50/50 focus:bg-white border-slate-200 h-11", facErrors.facilityName && "border-red-400")}
                             />
-                            {facErrors.name && <p className="text-[10px] text-red-500 font-medium px-1 uppercase tracking-tight">Required</p>}
+                            {facErrors.facilityName && <p className="text-[10px] text-red-500 font-medium px-1 uppercase tracking-tight">Required</p>}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label className="text-slate-600 font-bold uppercase text-[10px]">Category <span className="text-red-500">*</span></Label>
-                                <Select value={fac.category} onValueChange={(v) => handleFacChange("category", v)}>
-                                    <SelectTrigger className={cn("bg-slate-50/50 border-slate-200 h-11", facErrors.category && "border-red-400")}>
+                                <Select value={fac.facilityCategory} onValueChange={(v) => handleFacChange("facilityCategory", v)}>
+                                    <SelectTrigger className={cn("bg-slate-50/50 border-slate-200 h-11", facErrors.facilityCategory && "border-red-400")}>
                                         <SelectValue placeholder="Select" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -75,7 +76,7 @@ export function FacilityForm({
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-slate-600 font-bold uppercase text-[10px]">Availability Status</Label>
-                                <Select value={fac.availability} onValueChange={(v: "Available" | "Limited" | "Unavailable") => handleFacChange("availability", v)}>
+                                <Select value={fac.availabilityStatus} onValueChange={(v: "Available" | "Limited" | "Unavailable") => handleFacChange("availabilityStatus", v)}>
                                     <SelectTrigger className="bg-slate-50/50 border-slate-200 h-11">
                                         <SelectValue />
                                     </SelectTrigger>
@@ -90,9 +91,10 @@ export function FacilityForm({
                             <div className="space-y-2">
                                 <Label className="text-slate-600 font-bold uppercase text-[10px]">Capacity <span className="text-red-500">*</span></Label>
                                 <Input
-                                    placeholder="e.g., 20 researchers"
-                                    value={fac.capacity}
-                                    onChange={(e) => handleFacChange("capacity", e.target.value)}
+                                    type="number"
+                                    placeholder="e.g., 20"
+                                    value={fac.capacity || ""}
+                                    onChange={(e) => handleFacChange("capacity", parseInt(e.target.value) || 0)}
                                     className={cn("bg-slate-50/50 border-slate-200 h-11", facErrors.capacity && "border-red-400")}
                                 />
                             </div>
@@ -100,50 +102,51 @@ export function FacilityForm({
                                 <Label className="text-slate-600 font-bold uppercase text-[10px]">Room / Location <span className="text-red-500">*</span></Label>
                                 <Input
                                     placeholder="e.g., Block A, 101"
-                                    value={fac.room}
-                                    onChange={(e) => handleFacChange("room", e.target.value)}
-                                    className={cn("bg-slate-50/50 border-slate-200 h-11", facErrors.room && "border-red-400")}
+                                    value={fac.roomLocation}
+                                    onChange={(e) => handleFacChange("roomLocation", e.target.value)}
+                                    className={cn("bg-slate-50/50 border-slate-200 h-11", facErrors.roomLocation && "border-red-400")}
                                 />
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label className="text-slate-600 font-bold uppercase text-[10px]">Space Description <span className="text-red-500">*</span></Label>
-                            <Textarea
-                                placeholder="Purpose, safety levels, and general information..."
-                                value={fac.description}
-                                onChange={(e) => handleFacChange("description", e.target.value)}
-                                className={cn("bg-slate-50/50 border-slate-200 min-h-[100px]", facErrors.description && "border-red-400")}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-slate-600 font-bold uppercase text-[10px]">Space Description <span className="text-red-500">*</span></Label>
+                        <Textarea
+                            placeholder="Purpose, safety levels, and general information..."
+                            value={fac.spaceDescription}
+                            onChange={(e) => handleFacChange("spaceDescription", e.target.value)}
+                            className={cn("bg-slate-50/50 border-slate-200 min-h-[100px]", facErrors.spaceDescription && "border-red-400")}
+                        />
+                    </div>
+
+                    <div className="space-y-3">
+                        <Label className="text-slate-600 font-bold uppercase text-[10px]">Key Facility Features</Label>
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="e.g., Fume Hoods"
+                                value={featInput}
+                                onChange={(e) => setFeatInput(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addFeat())}
+                                className="bg-slate-50/50 border-slate-200 h-11"
                             />
+                            <Button type="button" variant="outline" onClick={addFeat} className="h-11 border-slate-200 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+                                <Plus className="h-5 w-5" />
+                            </Button>
                         </div>
-
-                        <div className="space-y-3">
-                            <Label className="text-slate-600 font-bold uppercase text-[10px]">Key Facility Features</Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder="e.g., Fume Hoods"
-                                    value={featInput}
-                                    onChange={(e) => setFeatInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addFeat())}
-                                    className="bg-slate-50/50 border-slate-200 h-11"
-                                />
-                                <Button type="button" variant="outline" onClick={addFeat} className="h-11 border-slate-200 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
-                                    <Plus className="h-5 w-5" />
-                                </Button>
+                        {features.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                {features.map(f => (
+                                    <Badge key={f} variant="secondary" className="bg-slate-100 text-slate-700 border-none px-3 py-1 font-medium group flex items-center gap-1.5">
+                                        {f}
+                                        <button onClick={() => removeFeat(f)} className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500">
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                ))}
                             </div>
-                            {features.length > 0 && (
-                                <div className="flex flex-wrap gap-2 pt-1">
-                                    {features.map(f => (
-                                        <Badge key={f} variant="secondary" className="bg-slate-100 text-slate-700 border-none px-3 py-1 font-medium group flex items-center gap-1.5">
-                                            {f}
-                                            <button onClick={() => removeFeat(f)} className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500">
-                                                <X className="h-3 w-3" />
-                                            </button>
-                                        </Badge>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>

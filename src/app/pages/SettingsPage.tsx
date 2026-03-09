@@ -14,7 +14,6 @@ export function SettingsContent({ onBack }: { onBack?: () => void } = {}) {
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     const [profilePic, setProfilePic] = useState(currentUser?.profilePic || "");
-    const [idProof, setIdProof] = useState("");
     const [institution, setInstitution] = useState("");
     const [department, setDepartment] = useState("");
     const [role, setRole] = useState("");
@@ -42,8 +41,6 @@ export function SettingsContent({ onBack }: { onBack?: () => void } = {}) {
             const fullUser = users.find(u => u.id === currentUser.id);
             if (fullUser) {
                 setPhone(fullUser.phone || "");
-                setPassword(fullUser.password || "");
-                setIdProof(fullUser.idProof || "");
                 setInstitution(fullUser.institution || "");
                 setDepartment(fullUser.department || "");
                 setRole(fullUser.role || "");
@@ -51,8 +48,7 @@ export function SettingsContent({ onBack }: { onBack?: () => void } = {}) {
             } else if (currentUser.id === "admin") {
                 // Admin specific fallback
                 setPhone("+1 (555) 000-0000");
-                setPassword("admin123");
-                setIdProof("");
+                setPassword("password1234@mce");
                 setInstitution("MCE R&D Center");
                 setDepartment("Administration");
                 setRole("Super Admin");
@@ -70,8 +66,7 @@ export function SettingsContent({ onBack }: { onBack?: () => void } = {}) {
                 email,
                 phone,
                 password,
-                profilePic,
-                idProof
+                profilePic
             });
             setIsSaving(false);
         }, 800);
@@ -126,30 +121,6 @@ export function SettingsContent({ onBack }: { onBack?: () => void } = {}) {
                             </div>
 
                             <div className="h-px bg-gray-100 w-full hidden md:block" />
-
-                            {/* ID Proof Section */}
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="relative group">
-                                    <div className="w-48 h-32 rounded-xl bg-slate-100 border-4 border-white shadow-lg overflow-hidden flex items-center justify-center">
-                                        {idProof ? (
-                                            <img src={idProof} alt="ID Proof" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <CreditCard className="w-12 h-12 text-slate-300" />
-                                        )}
-                                    </div>
-                                    <label htmlFor="id-proof-upload" className="absolute inset-0 bg-black/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                                        <Plus className="w-8 h-8 text-white" />
-                                    </label>
-                                </div>
-                                <Label htmlFor="id-proof-upload" className="text-sm font-semibold text-gray-900 cursor-pointer">ID Proof</Label>
-                                <Input
-                                    id="id-proof-upload"
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => handleImageUpload(e, setIdProof)}
-                                />
-                            </div>
                         </div>
 
                         {/* Right Column: Text Fields */}
@@ -293,8 +264,6 @@ export function SettingsContent({ onBack }: { onBack?: () => void } = {}) {
                                 const fullUser = users.find(u => u.id === currentUser?.id);
                                 if (fullUser) {
                                     setPhone(fullUser.phone || "");
-                                    setPassword(fullUser.password || "");
-                                    setIdProof(fullUser.idProof || "");
                                 }
                             }}
                         >

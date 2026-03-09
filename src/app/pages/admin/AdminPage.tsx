@@ -6,7 +6,7 @@ import {
   LayoutDashboard, CalendarCheck, FlaskConical, Building2, Users,
   PackagePlus, PlusCircle, CheckCircle, XCircle, Clock, Trash2,
   Search, Shield, Activity, ChevronRight, LogOut, ToggleLeft, ToggleRight, Filter,
-  LucideIcon, Settings, User, PencilLine
+  LucideIcon, Settings, User, PencilLine, Package
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -23,6 +23,7 @@ import { LogoutModal } from "../../components/LogoutModal";
 import { Modal } from "../../components/Modal";
 
 import { SettingsContent } from "../SettingsPage";
+
 
 type Section = "dashboard" | "bookings" | "equipment" | "facilities" | "users" | "settings";
 
@@ -72,9 +73,9 @@ function DashboardSection({ setSection }: { setSection: (s: Section) => void }) 
   const { equipment, facilities, bookings, users } = useAppContext();
   const pending = bookings.filter((b) => b.status === "Pending").length;
   const approved = bookings.filter((b) => b.status === "Approved").length;
-  const available = equipment.filter((e) => e.status === "Available").length;
+  const available = equipment.filter((e) => e.initialStatus === "Available").length;
   const activeUsers = users.filter((u) => u.status === "Active").length;
-  const recent = [...bookings].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)).slice(0, 5);
+  const recent = [...bookings].sort((a, b) => (b.submittedAt || "").localeCompare(a.submittedAt || "")).slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -131,9 +132,9 @@ function DashboardSection({ setSection }: { setSection: (s: Section) => void }) 
             <CardContent className="space-y-2">
               <p className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Facilities</p>
               {[
-                { label: "Available", count: facilities.filter((f) => f.availability === "Available").length, color: "bg-green-500" },
-                { label: "Limited", count: facilities.filter((f) => f.availability === "Limited").length, color: "bg-amber-500" },
-                { label: "Unavailable", count: facilities.filter((f) => f.availability === "Unavailable").length, color: "bg-red-500" },
+                { label: "Available", count: facilities.filter((f) => f.availabilityStatus === "Available").length, color: "bg-green-500" },
+                { label: "Limited", count: facilities.filter((f) => f.availabilityStatus === "Limited").length, color: "bg-amber-500" },
+                { label: "Unavailable", count: facilities.filter((f) => f.availabilityStatus === "Unavailable").length, color: "bg-red-500" },
               ].map((item) => (
                 <div key={`fac-${item.label}`} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -145,9 +146,9 @@ function DashboardSection({ setSection }: { setSection: (s: Section) => void }) 
               ))}
               <p className="text-[10px] font-bold uppercase text-gray-400 tracking-wider pt-2 border-t">Equipment</p>
               {[
-                { label: "Available", count: equipment.filter((e) => e.status === "Available").length, color: "bg-green-500" },
-                { label: "In Use", count: equipment.filter((e) => e.status === "In Use").length, color: "bg-orange-500" },
-                { label: "Maintenance", count: equipment.filter((e) => e.status === "Maintenance").length, color: "bg-red-500" },
+                { label: "Available", count: equipment.filter((e) => e.initialStatus === "Available").length, color: "bg-green-500" },
+                { label: "In Use", count: equipment.filter((e) => e.initialStatus === "In Use").length, color: "bg-orange-500" },
+                { label: "Maintenance", count: equipment.filter((e) => e.initialStatus === "Maintenance").length, color: "bg-red-500" },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -166,6 +167,8 @@ function DashboardSection({ setSection }: { setSection: (s: Section) => void }) 
           </Card>
         </div>
       </div>
+
+
     </div>
   );
 }
@@ -226,8 +229,8 @@ function BookingsSection() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-gray-50">
-                  {["Researcher", "Resource", "Date & Time", "Requested Date", "ID Proof", "Status", "Actions"].map((h, i, arr) => (
-                    <th key={h} className={`${h === "Actions" ? "text-right pr-12" : "text-left"} py-3 px-4 font-medium text-gray-600 ${h === "Resource" || h === "ID Proof" ? "hidden md:table-cell" : h === "Date & Time" || h === "Requested Date" ? "hidden lg:table-cell" : ""} ${i === 0 ? "rounded-tl-xl" : ""} ${i === arr.length - 1 ? "rounded-tr-xl" : ""}`}>
+                  {["Researcher", "Resource", "Date & Time", "Requested Date", "Status", "Actions"].map((h, i, arr) => (
+                    <th key={h} className={`${h === "Actions" ? "text-right pr-12" : "text-left"} py-3 px-4 font-medium text-gray-600 ${h === "Resource" ? "hidden md:table-cell" : h === "Date & Time" || h === "Requested Date" ? "hidden lg:table-cell" : ""} ${i === 0 ? "rounded-tl-xl" : ""} ${i === arr.length - 1 ? "rounded-tr-xl" : ""}`}>
                       {h}
                     </th>
                   ))}
@@ -238,29 +241,49 @@ function BookingsSection() {
                   <tr key={b.id} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="py-3 px-4">
                       <p className="font-medium text-gray-900">{b.name}</p>
-                      <p className="text-xs text-gray-400">{b.email}</p>
+                      <p className="text-xs text-gray-500 mb-1">{b.email}</p>
+                      {(() => {
+                        const user = users.find(u => u.email === b.email);
+                        if (user) {
+                          return (
+                            <div className="flex flex-col gap-0.5 mt-1 pt-1">
+                              <span className="text-[10px] text-gray-500 font-medium leading-tight">
+                                {user.institution} <span className="opacity-40 px-0.5">•</span> {user.department}
+                              </span>
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 uppercase tracking-wider bg-gray-50 text-gray-600 border-gray-200 w-fit mt-0.5">
+                                {user.role}
+                              </Badge>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </td>
                     <td className="py-3 px-4 hidden md:table-cell">
                       <p className="text-gray-700 text-xs max-w-40 truncate">
                         {b.type === "facility" ? b.facility : b.type === "equipment" ? b.equipment : "Facility + Equipment"}
                       </p>
-                      <p className="text-gray-400 text-xs capitalize">{b.type}</p>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <p className="text-gray-400 text-xs capitalize">{b.type}</p>
+                        {b.type === 'facility' && b.persons && (
+                          <span className="text-blue-600 text-[10px] flex items-center bg-blue-50 px-1.5 py-0.5 rounded font-medium border border-blue-100">
+                            <Users className="w-3 h-3 mr-1" />
+                            {b.persons} {b.persons === 1 ? 'Person' : 'Persons'}
+                          </span>
+                        )}
+                        {b.type === 'equipment' && b.quantity && (
+                          <span className="text-indigo-600 text-[10px] flex items-center bg-indigo-50 px-1.5 py-0.5 rounded font-medium border border-indigo-100">
+                            <Package className="w-3 h-3 mr-1" />
+                            Qty: {b.quantity}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500">{b.date}<br />{b.timeSlot}</td>
                     <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500">
                       {new Date(b.submittedAt).toLocaleDateString()}
                       <br />
                       {!isNaN(new Date(b.submittedAt).getTime()) && b.submittedAt.includes('T') && new Date(b.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="py-3 px-4 hidden md:table-cell text-xs">
-                      {(() => {
-                        const user = users.find(u => u.email === b.email);
-                        return user?.idProof ? (
-                          <Badge variant="outline" className="font-mono text-[10px] bg-slate-50">{user.idProof}</Badge>
-                        ) : (
-                          <span className="text-gray-400 italic">Not provided</span>
-                        );
-                      })()}
                     </td>
                     <td className="py-3 px-4"><StatusPill status={b.status} /></td>
                     <td className="py-3 px-4">
@@ -336,17 +359,17 @@ function BookingsSection() {
 function EquipmentSection() {
   const { equipment, facilities, updateEquipmentStatus, deleteEquipment } = useAppContext();
   const [search, setSearch] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const filtered = equipment.filter((e) =>
-    e.name.toLowerCase().includes(search.toLowerCase()) ||
-    e.category.toLowerCase().includes(search.toLowerCase()) ||
-    e.manufacturer.toLowerCase().includes(search.toLowerCase())
+    (e.equipmentName || "").toLowerCase().includes(search.toLowerCase()) ||
+    (e.equipmentCategory || "").toLowerCase().includes(search.toLowerCase()) ||
+    (e.manufacturer || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const cycleStatus = (e: Equipment) => {
-    const cycle: Equipment["status"][] = ["Available", "In Use", "Maintenance"];
-    updateEquipmentStatus(e.id, cycle[(cycle.indexOf(e.status) + 1) % 3]);
+    const cycle: Equipment["initialStatus"][] = ["Available", "In Use", "Maintenance"];
+    updateEquipmentStatus(e.facilityId, e.id, cycle[(cycle.indexOf(e.initialStatus) + 1) % 3]);
   };
 
   return (
@@ -378,32 +401,32 @@ function EquipmentSection() {
               <tbody>
                 {filtered.map((e: Equipment) => (
                   <tr key={e.id} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="py-3 px-4"><p className="font-medium text-gray-900 max-w-44 truncate">{e.name}</p></td>
+                    <td className="py-3 px-4"><p className="font-medium text-gray-900 max-w-44 truncate">{e.equipmentName}</p></td>
                     <td className="py-3 px-4 hidden sm:table-cell">
-                      <Badge variant="outline" className="text-xs whitespace-nowrap">{e.category}</Badge>
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">{e.equipmentCategory}</Badge>
                     </td>
                     <td className="py-3 px-4 hidden md:table-cell">
                       <p className="text-gray-700">{e.manufacturer}</p>
-                      <p className="text-gray-400 text-xs">{e.model}</p>
+                      <p className="text-gray-400 text-xs">{e.modelNumber}</p>
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500 max-w-36">
                       <span className="truncate block text-slate-700 font-medium">
-                        {facilities.find(f => e.location.startsWith(f.name))?.name || "Unknown Facility"}
+                        {facilities.find(f => f.id === e.facilityId)?.facilityName || "Unknown Facility"}
                       </span>
-                      <span className="truncate block text-[10px]">{e.location.split(" - ").slice(1).join(" - ") || e.location}</span>
+                      <span className="truncate block text-[10px] italic">ID: {e.facilityId}</span>
                     </td>
-                    <td className="py-3 px-4"><StatusPill status={e.status} /></td>
+                    <td className="py-3 px-4"><StatusPill status={e.initialStatus} /></td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-end gap-1">
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-blue-600 hover:bg-blue-50" asChild title="Edit equipment">
                           <Link to={`/admin/edit-equipment/${e.id}`}><PencilLine className="h-4 w-4" /></Link>
                         </Button>
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-blue-600 hover:bg-blue-50" onClick={() => cycleStatus(e)} title="Cycle status">
-                          {e.status === "Available" ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                          {e.initialStatus === "Available" ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
                         </Button>
                         {confirmDelete === e.id ? (
                           <div className="flex gap-1">
-                            <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => { deleteEquipment(e.id); setConfirmDelete(null); }}>Confirm</Button>
+                            <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => { deleteEquipment(e.facilityId, e.id); setConfirmDelete(null); }}>Confirm</Button>
                             <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setConfirmDelete(null)}>Cancel</Button>
                           </div>
                         ) : (
@@ -434,21 +457,21 @@ function EquipmentSection() {
 function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section) => void }) {
   const { facilities, equipment, updateFacilityAvailability, deleteFacility, updateEquipmentStatus } = useAppContext();
   const [search, setSearch] = useState("");
-  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [availFilter, setAvailFilter] = useState("All");
   const [catFilter, setCatFilter] = useState("All");
   const [eqStatusFilter, setEqStatusFilter] = useState("All");
 
-  const categories = Array.from(new Set(facilities.map(f => f.category)));
+  const categories = Array.from(new Set(facilities.map(f => f.facilityCategory))).filter(Boolean);
 
   const filtered = facilities.filter((f) => {
-    const matchesSearch = f.name.toLowerCase().includes(search.toLowerCase()) || f.category.toLowerCase().includes(search.toLowerCase());
-    const matchesAvail = availFilter === "All" || f.availability === availFilter;
-    const matchesCat = catFilter === "All" || f.category === catFilter;
+    const matchesSearch = (f.facilityName || "").toLowerCase().includes(search.toLowerCase()) || (f.facilityCategory || "").toLowerCase().includes(search.toLowerCase());
+    const matchesAvail = availFilter === "All" || f.availabilityStatus === availFilter;
+    const matchesCat = catFilter === "All" || f.facilityCategory === catFilter;
 
     // For equipment status filter, check if facility has equipment matching that status
     if (eqStatusFilter !== "All") {
-      const hasMatchingEq = equipment.some(e => e.location.startsWith(f.name) && e.status === eqStatusFilter);
+      const hasMatchingEq = equipment.some(e => e.facilityId === f.id && e.initialStatus === eqStatusFilter);
       return matchesSearch && matchesAvail && matchesCat && hasMatchingEq;
     }
 
@@ -513,35 +536,35 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
             <CardContent className="pt-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-gray-900 text-base mb-1 truncate">{f.name}</h3>
+                  <h3 className="font-semibold text-gray-900 text-base mb-1 truncate">{f.facilityName}</h3>
                   <div className="flex items-center gap-2 flex-wrap text-sm text-gray-500 mb-2">
-                    <span>{f.room}</span>
+                    <span>{f.roomLocation}</span>
                     <span>·</span>
-                    <span>{f.capacity}</span>
+                    <span>{f.capacity} Researchers</span>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="outline" className="text-sm">{f.category}</Badge>
-                    <StatusPill status={f.availability} />
+                    <Badge variant="outline" className="text-sm">{f.facilityCategory}</Badge>
+                    <StatusPill status={f.availabilityStatus} />
                   </div>
-                  {f.features.length > 0 && (
+                  {(f.keyFacilityFeatures || []).length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {f.features.slice(0, 3).map((feat) => (
+                      {(f.keyFacilityFeatures || []).slice(0, 3).map((feat) => (
                         <Badge key={feat} variant="secondary" className="text-xs">{feat}</Badge>
                       ))}
-                      {f.features.length > 3 && (
-                        <Badge variant="secondary" className="text-xs">+{f.features.length - 3}</Badge>
+                      {(f.keyFacilityFeatures || []).length > 3 && (
+                        <Badge variant="secondary" className="text-xs">+{(f.keyFacilityFeatures || []).length - 3}</Badge>
                       )}
                     </div>
                   )}
 
                   {/* Associated Equipment grouped by Category */}
                   {(() => {
-                    const associated = equipment.filter(e => e.location.startsWith(f.name));
+                    const associated = equipment.filter(e => e.facilityId === f.id);
                     if (associated.length === 0) return null;
 
                     const grouped = associated.reduce((acc, eq) => {
-                      if (!acc[eq.category]) acc[eq.category] = [];
-                      acc[eq.category].push(eq);
+                      if (!acc[eq.equipmentCategory]) acc[eq.equipmentCategory] = [];
+                      acc[eq.equipmentCategory].push(eq);
                       return acc;
                     }, {} as Record<string, Equipment[]>);
 
@@ -555,7 +578,7 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
                               <div className="flex flex-wrap gap-1 mt-1.5">
                                 {eqs.map(eq => (
                                   <Badge key={eq.id} variant="outline" className="text-xs bg-white border-blue-100 text-slate-600 h-6 px-2 font-medium">
-                                    {eq.name}
+                                    {eq.equipmentName}
                                   </Badge>
                                 ))}
                               </div>
@@ -571,7 +594,7 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
                     <Link to={`/admin/edit-facility/${f.id}`}><PencilLine className="h-4 w-4 text-blue-600 mr-1.5" />Edit</Link>
                   </Button>
                   <RadioGroup
-                    value={f.availability}
+                    value={f.availabilityStatus}
                     onValueChange={(val: any) => updateFacilityAvailability(f.id, val)}
                     className="flex flex-col gap-2 mt-1 border border-gray-100 rounded-md p-2.5 bg-gray-50/50"
                   >
@@ -644,7 +667,6 @@ function UsersSection() {
                   <th className="text-left py-3 px-4 font-medium text-gray-600">Name</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden md:table-cell">Role</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden lg:table-cell">Institution</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 hidden xl:table-cell">ID Proof</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden sm:table-cell">Joined</th>
                 </tr>
               </thead>
@@ -660,13 +682,6 @@ function UsersSection() {
                       <p className="text-gray-400 text-xs">{u.department}</p>
                     </td>
                     <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500">{u.institution}</td>
-                    <td className="py-3 px-4 hidden xl:table-cell text-xs">
-                      {u.idProof ? (
-                        <Badge variant="outline" className="font-mono text-[10px] bg-slate-50">{u.idProof}</Badge>
-                      ) : (
-                        <span className="text-gray-400 italic">Not provided</span>
-                      )}
-                    </td>
                     <td className="py-3 px-4 hidden sm:table-cell text-xs text-gray-500">{u.joinedAt}</td>
                   </tr>
                 ))}
@@ -715,8 +730,8 @@ export function AdminPage() {
           <CardContent className="space-y-3">
             <div className="bg-slate-50 rounded-lg p-3 text-xs text-gray-600 text-left">
               <p className="font-medium mb-1">Admin Credentials:</p>
-              <p>Email: <span className="font-mono">admin@rdcenter.edu</span></p>
-              <p>Password: <span className="font-mono">admin123</span></p>
+              <p>Email: <span className="font-mono">clginventorymanagement@gmail.com</span></p>
+              <p>Password: <span className="font-mono">password1234@mce</span></p>
             </div>
             <Button className="w-full" onClick={() => navigate("/login")}>Sign In as Admin</Button>
             <Button variant="outline" className="w-full" onClick={() => navigate("/")}>Back to Home</Button>
@@ -738,18 +753,20 @@ export function AdminPage() {
   return (
     <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
       {/* Admin Top Bar */}
-      <Navbar>
-        <Navbar.Brand
-          icon={Shield}
-          title="Admin Portal"
-          subtitle="R&D Center Management"
-        />
-        <Navbar.Actions>
-          <Button size="sm" variant="outline" className="text-gray-600 gap-1.5 border-gray-200 h-8" asChild>
-            <Link to="/"><ChevronRight className="h-4 w-4 rotate-180" />Site</Link>
-          </Button>
-        </Navbar.Actions>
-      </Navbar>
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200 flex-none leading-none">
+        <Navbar>
+          <Navbar.Brand
+            icon={Shield}
+            title="Admin Portal"
+            subtitle="R&D Center Management"
+          />
+          <Navbar.Actions>
+            <Button size="sm" variant="outline" className="text-gray-600 gap-1.5 border-gray-200 h-8" asChild>
+              <Link to="/"><ChevronRight className="h-4 w-4 rotate-180" />Site</Link>
+            </Button>
+          </Navbar.Actions>
+        </Navbar>
+      </div>
 
       <div className="flex-1 overflow-hidden w-full flex bg-white">
         <div className="flex w-full h-full">

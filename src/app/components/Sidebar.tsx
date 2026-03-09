@@ -99,7 +99,7 @@ Sidebar.Profile = ({ onSettingsClick, onLogoutClick }: { onSettingsClick: () => 
                     <button className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-gray-100 transition-all duration-200 group text-left outline-hidden">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm shrink-0 border border-white shadow-sm overflow-hidden group-hover:border-blue-200 transition-colors">
-                                {currentUser ? (
+                                {currentUser?.name ? (
                                     currentUser.name.split(' ').map(n => n[0]).join('')
                                 ) : (
                                     <User className="w-5 h-5" />
@@ -107,7 +107,7 @@ Sidebar.Profile = ({ onSettingsClick, onLogoutClick }: { onSettingsClick: () => 
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-sm font-semibold text-slate-900 leading-tight truncate max-w-[140px]">
-                                    {currentUser ? currentUser.name : "Guest"}
+                                    {currentUser?.name || "Guest"}
                                 </span>
                                 <span className="text-[11px] text-slate-500 font-medium">
                                     {currentUser ? (currentUser.role === 'admin' ? 'Plus' : 'Researcher') : "Not signed in"}
@@ -126,7 +126,7 @@ Sidebar.Profile = ({ onSettingsClick, onLogoutClick }: { onSettingsClick: () => 
                     <DropdownMenuLabel className="px-2 py-2">
                         <div className="flex items-center gap-2.5">
                             <div className="w-9 h-9 rounded-full bg-slate-100 text-xs flex items-center justify-center font-bold text-slate-600 border border-slate-200">
-                                {currentUser ? currentUser.name.split(' ').map(n => n[0]).join('') : "G"}
+                                {currentUser?.name ? currentUser.name.split(' ').map(n => n[0]).join('') : "G"}
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-sm font-semibold text-slate-900">{currentUser ? currentUser.name : "Guest"}</span>

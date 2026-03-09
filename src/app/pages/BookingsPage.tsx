@@ -1,6 +1,7 @@
 import { useAppContext } from "../context/AppContext";
 import { Badge } from "../components/ui/badge";
-import { Calendar, Clock, MapPin, Package } from "lucide-react";
+import { Card, CardContent, CardHeader } from "../components/ui/card";
+import { Calendar, Clock, MapPin, Package, Users } from "lucide-react";
 
 export function BookingsPage() {
     const { currentUser, bookings } = useAppContext();
@@ -46,60 +47,67 @@ export function BookingsPage() {
                     <div className="space-y-6">
                         {sortedBookings.map((booking) => {
                             return (
-                                <div key={booking.id} className="bg-white border text-left border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                                    {/* Visual Indicator Line based on status */}
-                                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${booking.status === 'Approved' ? 'bg-green-500' : booking.status === 'Pending' ? 'bg-amber-400' : 'bg-red-500'}`}></div>
+                                <Card key={booking.id} className="relative overflow-hidden group hover:shadow-md transition-shadow">
+                                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${booking.status === 'Approved' ? 'bg-green-500' : booking.status === 'Pending' ? 'bg-amber-400' : 'bg-red-500'}`} />
 
-                                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                                        <div className="space-y-4 flex-1 pl-3">
-                                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        {booking.type === 'facility' ? (
-                                                            <MapPin className="h-5 w-5 text-blue-500" />
-                                                        ) : (
-                                                            <Package className="h-5 w-5 text-purple-500" />
-                                                        )}
-                                                        <span className="text-sm font-bold uppercase tracking-wider text-gray-500">
-                                                            {booking.type === 'facility' ? 'Facility Booking' : 'Equipment Booking'}
-                                                        </span>
-                                                    </div>
-                                                    <h4 className="text-xl font-bold text-gray-900">
-                                                        {booking.type === 'facility' ? booking.facility : booking.equipment}
-                                                    </h4>
-                                                    {booking.type === 'equipment' && booking.facility && (
-                                                        <p className="text-md text-gray-600 mt-1">{booking.facility}</p>
+                                    <CardHeader className="pb-3 pl-6">
+                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    {booking.type === 'facility' ? (
+                                                        <MapPin className="h-4 w-4 text-blue-500" />
+                                                    ) : (
+                                                        <Package className="h-4 w-4 text-purple-500" />
                                                     )}
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                                                        {booking.type === 'facility' ? 'Facility Booking' : 'Equipment Booking'}
+                                                    </span>
                                                 </div>
-                                                <div className="shrink-0">
-                                                    {getStatusBadge(booking.status)}
-                                                </div>
+                                                <h4 className="text-xl font-bold text-gray-900 leading-tight">
+                                                    {booking.type === 'facility' ? booking.facility : booking.equipment}
+                                                </h4>
+                                                {booking.type === 'equipment' && booking.facility && (
+                                                    <p className="text-sm text-gray-600">{booking.facility}</p>
+                                                )}
                                             </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm text-gray-600 bg-gray-50/50 p-4 rounded-xl">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="bg-white p-2 rounded-lg shadow-sm">
-                                                        <Calendar className="h-4 w-4 text-gray-500" />
-                                                    </div>
-                                                    <span className="font-medium text-gray-900">{new Date(booking.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="bg-white p-2 rounded-lg shadow-sm">
-                                                        <Clock className="h-4 w-4 text-gray-500" />
-                                                    </div>
-                                                    <span className="font-medium text-gray-900">{booking.timeSlot}</span>
-                                                </div>
-                                            </div>
-
-                                            <div className="pt-4 mt-2 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                                <span className="text-xs text-gray-400 font-mono bg-gray-50 px-2 py-1 rounded">ID: {booking.id}</span>
-                                                <span className="text-xs text-gray-500 flex items-center gap-1">
-                                                    <Clock className="h-3 w-3" /> Submitted on {new Date(booking.submittedAt).toLocaleDateString()}
-                                                </span>
+                                            <div className="shrink-0 mt-1 sm:mt-0">
+                                                {getStatusBadge(booking.status)}
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    </CardHeader>
+
+                                    <CardContent className="pl-6 pb-5 space-y-4">
+                                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 text-sm text-gray-600">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className="h-4 w-4 text-gray-400" />
+                                                <span className="font-medium">{new Date(booking.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Clock className="h-4 w-4 text-gray-400" />
+                                                <span className="font-medium">{booking.timeSlot}</span>
+                                            </div>
+                                            {(booking.type === 'facility' && booking.persons) && (
+                                                <div className="flex items-center gap-2">
+                                                    <Users className="h-4 w-4 text-gray-400" />
+                                                    <span className="font-medium">{booking.persons} {booking.persons > 1 ? 'Persons' : 'Person'}</span>
+                                                </div>
+                                            )}
+                                            {(booking.type === 'equipment' && booking.quantity) && (
+                                                <div className="flex items-center gap-2">
+                                                    <Package className="h-4 w-4 text-gray-400" />
+                                                    <span className="font-medium">Qty: {booking.quantity}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                                            <span className="font-mono bg-gray-50 px-2 py-1 rounded">ID: {booking.id}</span>
+                                            <span className="flex items-center gap-1.5">
+                                                <Clock className="h-3 w-3" /> Submitted on {new Date(booking.submittedAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             );
                         })}
                     </div>

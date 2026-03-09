@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation } from "react-router";
 import { Navigation } from "./Navigation";
 import { Sidebar } from "./Sidebar";
 import { useState } from "react";
-import { Microscope, Home, Settings, FlaskConical, Dna, Cpu, Atom, Monitor, ChevronDown, ChevronLeft, ChevronRight, User, LayoutGrid, Menu, SquarePen } from "lucide-react";
+import { Microscope, Home, Settings, FlaskConical, Dna, Cpu, Atom, Monitor, ChevronDown, ChevronLeft, ChevronRight, User, LayoutGrid, Menu, SquarePen, Zap } from "lucide-react";
 import { Navbar } from "./Navbar";
 import { useAppContext } from "../context/AppContext";
 import { UserMenu } from "./UserMenu";
@@ -26,9 +26,11 @@ export function Layout() {
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {!isAdminRoute && (
-        <Navigation
-          onLogoutClick={() => setIsLogoutOpen(true)}
-        />
+        <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200 flex-none leading-none">
+          <Navigation
+            onLogoutClick={() => setIsLogoutOpen(true)}
+          />
+        </div>
       )}
       <div className="flex flex-1 overflow-hidden relative">
         {/* Perfect Unified Sidebar Match */}
@@ -56,11 +58,12 @@ export function Layout() {
               <div className="flex flex-col gap-1">
                 {[
                   { name: "All Research Areas", icon: LayoutGrid, path: "/facilities/", state: { data: "All" } },
-                  { name: "Chemistry Lab", icon: FlaskConical, path: "/facilities/", state: { data: "Chemistry" } },
-                  { name: "Biotech Lab", icon: Dna, path: "/facilities/", state: { data: "Biotechnology" } },
-                  { name: "Electronics Lab", icon: Cpu, path: "/facilities/", state: { data: "Electronics" } },
-                  { name: "Materials Lab", icon: Atom, path: "/facilities/", state: { data: "Materials Science" } },
-                  { name: "Computing Lab", icon: Monitor, path: "/facilities/", state: { data: "Computing" } },
+                  { name: "Chemistry Lab", icon: FlaskConical, path: "/facilities/", state: { data: "CHEMISTRY_LAB" } },
+                  { name: "Biotech Lab", icon: Dna, path: "/facilities/", state: { data: "BIOMEDICAL_LAB" } },
+                  { name: "EEE Lab", icon: Zap, path: "/facilities/", state: { data: "EEE_LAB" } },
+                  { name: "Electronics Lab", icon: Cpu, path: "/facilities/", state: { data: "ECE_LAB" } },
+                  { name: "Physics Lab", icon: Atom, path: "/facilities/", state: { data: "PHYSICS_LAB" } },
+                  { name: "Computing Lab", icon: Monitor, path: "/facilities/", state: { data: "COMPUTER_LAB" } },
                 ].map((area) => {
                   const activeData = location.state?.data;
                   const isActive = area.state

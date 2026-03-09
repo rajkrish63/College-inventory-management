@@ -13,16 +13,16 @@ import {
 import { useAppContext } from "../../context/AppContext";
 
 const categories = [
-    "Chemistry", "Biotechnology", "Materials Science", "Electronics",
-    "Computing", "Physics", "Biology", "Engineering", "Other",
+    "CHEMISTRY_LAB", "BIOMEDICAL_LAB", "EEE_LAB", "ECE_LAB",
+    "PHYSICS_LAB", "COMPUTER_LAB", "Other",
 ];
 
 const defaultImages: Record<string, string> = {
-    Chemistry: "https://images.unsplash.com/photo-1707944746058-4da338d0f827?w=800&q=80",
-    Biotechnology: "https://images.unsplash.com/photo-1732400333616-8efa4f385a03?w=800&q=80",
+    CHEMISTRY_LAB: "https://images.unsplash.com/photo-1707944746058-4da338d0f827?w=800&q=80",
+    BIOMEDICAL_LAB: "https://images.unsplash.com/photo-1732400333616-8efa4f385a03?w=800&q=80",
     "Materials Science": "https://images.unsplash.com/photo-1765830403209-a5eceac4c198?w=800&q=80",
     Electronics: "https://images.unsplash.com/photo-1759866042499-d0b3e9d87ceb?w=800&q=80",
-    Computing: "https://images.unsplash.com/photo-1765830403209-a5eceac4c198?w=800&q=80",
+    COMPUTER_LAB: "https://images.unsplash.com/photo-1765830403209-a5eceac4c198?w=800&q=80",
 };
 
 export function AddFacilityPage() {
@@ -35,8 +35,12 @@ export function AddFacilityPage() {
     const [loading, setLoading] = useState(false);
 
     const [form, setForm] = useState({
-        name: "", category: "", description: "", capacity: "", room: "",
-        availability: "Available" as "Available" | "Limited" | "Unavailable",
+        facilityName: "",
+        facilityCategory: "",
+        spaceDescription: "",
+        capacity: 0,
+        roomLocation: "",
+        availabilityStatus: "Available" as "Available" | "Limited" | "Unavailable",
     });
     const [featureInput, setFeatureInput] = useState("");
     const [features, setFeatures] = useState<string[]>([]);
@@ -44,28 +48,28 @@ export function AddFacilityPage() {
 
     useEffect(() => {
         if (isEditMode && facilities.length > 0) {
-            const facility = facilities.find(f => f.id === parseInt(id));
+            const facility = facilities.find(f => f.id === id);
             if (facility) {
                 setForm({
-                    name: facility.name,
-                    category: facility.category,
-                    description: facility.description,
+                    facilityName: facility.facilityName,
+                    facilityCategory: facility.facilityCategory,
+                    spaceDescription: facility.spaceDescription,
                     capacity: facility.capacity,
-                    room: facility.room,
-                    availability: facility.availability,
+                    roomLocation: facility.roomLocation,
+                    availabilityStatus: facility.availabilityStatus,
                 });
-                setFeatures(facility.features);
+                setFeatures(facility.keyFacilityFeatures);
             }
         }
     }, [isEditMode, id, facilities]);
 
     const validate = () => {
         const e: Record<string, string> = {};
-        if (!form.name.trim()) e.name = "Required";
-        if (!form.category) e.category = "Required";
-        if (!form.description.trim()) e.description = "Required";
-        if (!form.capacity.trim()) e.capacity = "Required";
-        if (!form.room.trim()) e.room = "Required";
+        if (!form.facilityName.trim()) e.facilityName = "Required";
+        if (!form.facilityCategory) e.facilityCategory = "Required";
+        if (!form.spaceDescription.trim()) e.spaceDescription = "Required";
+        if (form.capacity <= 0) e.capacity = "Required";
+        if (!form.roomLocation.trim()) e.roomLocation = "Required";
         return e;
     };
 
@@ -83,23 +87,26 @@ export function AddFacilityPage() {
 
         setLoading(true);
         setTimeout(() => {
+            const submission = {
+                ...form,
+                keyFacilityFeatures: features,
+                createdAt: new Date().toISOString(),
+                image: defaultImages[form.facilityCategory] || defaultImages.CHEMISTRY_LAB,
+            };
+
             if (isEditMode) {
-                updateFacility(parseInt(id), { ...form, features });
+                updateFacility(id!, { ...form, keyFacilityFeatures: features });
             } else {
-                addFacility({
-                    ...form,
-                    features,
-                    image: defaultImages[form.category] || defaultImages.Chemistry,
-                });
+                addFacility(submission);
             }
-            setAddedName(form.name);
+            setAddedName(form.facilityName);
             setDone(true);
             setLoading(false);
         }, 800);
     };
 
     const resetForm = () => {
-        setForm({ name: "", category: "", description: "", capacity: "", room: "", availability: "Available" });
+        setForm({ facilityName: "", facilityCategory: "", spaceDescription: "", capacity: 0, roomLocation: "", availabilityStatus: "Available" });
         setFeatures([]); setErrors({}); setDone(false);
     };
 
@@ -157,7 +164,7 @@ export function AddFacilityPage() {
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">{isEditMode ? "Edit Facility" : "Add New Facility"}</h1>
-                        <p className="text-slate-400 text-sm">{isEditMode ? `Updating "${form.name}"` : "Register a new research facility or laboratory"}</p>
+                        <p className="text-slate-400 text-sm">{isEditMode ? `Updating "${form.facilityName}"` : "Register a new research facility or laboratory"}</p>
                     </div>
                 </div>
             </div>
@@ -176,29 +183,29 @@ export function AddFacilityPage() {
                                 <div className="space-y-4">
                                     <h3 className="font-semibold border-b pb-2 text-gray-800">Basic Information</h3>
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="name">Facility Name <span className="text-red-500">*</span></Label>
-                                        <Input id="name" placeholder="e.g., Advanced Chemistry Laboratory"
-                                            value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                            className={errors.name ? "border-red-400" : ""} />
-                                        {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                                        <Label htmlFor="facilityName">Facility Name <span className="text-red-500">*</span></Label>
+                                        <Input id="facilityName" placeholder="e.g., Advanced Chemistry Laboratory"
+                                            value={form.facilityName} onChange={(e) => setForm({ ...form, facilityName: e.target.value })}
+                                            className={errors.facilityName ? "border-red-400" : ""} />
+                                        {errors.facilityName && <p className="text-xs text-red-500">{errors.facilityName}</p>}
                                     </div>
                                     <div className="grid sm:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
-                                            <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                                                <SelectTrigger id="category" className={errors.category ? "border-red-400" : ""}>
+                                            <Label htmlFor="facilityCategory">Category <span className="text-red-500">*</span></Label>
+                                            <Select value={form.facilityCategory} onValueChange={(v) => setForm({ ...form, facilityCategory: v })}>
+                                                <SelectTrigger id="facilityCategory" className={errors.facilityCategory ? "border-red-400" : ""}>
                                                     <SelectValue placeholder="Select category" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
-                                            {errors.category && <p className="text-xs text-red-500">{errors.category}</p>}
+                                            {errors.facilityCategory && <p className="text-xs text-red-500">{errors.facilityCategory}</p>}
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="availability">Initial Availability</Label>
-                                            <Select value={form.availability} onValueChange={(v) => setForm({ ...form, availability: v as typeof form.availability })}>
-                                                <SelectTrigger id="availability"><SelectValue /></SelectTrigger>
+                                            <Label htmlFor="availabilityStatus">Initial Availability</Label>
+                                            <Select value={form.availabilityStatus} onValueChange={(v) => setForm({ ...form, availabilityStatus: v as typeof form.availabilityStatus })}>
+                                                <SelectTrigger id="availabilityStatus"><SelectValue /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="Available">Available</SelectItem>
                                                     <SelectItem value="Limited">Limited</SelectItem>
@@ -210,26 +217,26 @@ export function AddFacilityPage() {
                                     <div className="grid sm:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
                                             <Label htmlFor="capacity">Capacity <span className="text-red-500">*</span></Label>
-                                            <Input id="capacity" placeholder="e.g., 20 researchers"
-                                                value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })}
+                                            <Input id="capacity" type="number" placeholder="e.g., 20"
+                                                value={form.capacity || ""} onChange={(e) => setForm({ ...form, capacity: parseInt(e.target.value) || 0 })}
                                                 className={errors.capacity ? "border-red-400" : ""} />
                                             {errors.capacity && <p className="text-xs text-red-500">{errors.capacity}</p>}
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="room">Room / Location <span className="text-red-500">*</span></Label>
-                                            <Input id="room" placeholder="e.g., Building A, Room 101-110"
-                                                value={form.room} onChange={(e) => setForm({ ...form, room: e.target.value })}
-                                                className={errors.room ? "border-red-400" : ""} />
-                                            {errors.room && <p className="text-xs text-red-500">{errors.room}</p>}
+                                            <Label htmlFor="roomLocation">Room / Location <span className="text-red-500">*</span></Label>
+                                            <Input id="roomLocation" placeholder="e.g., Block A, Room 101"
+                                                value={form.roomLocation} onChange={(e) => setForm({ ...form, roomLocation: e.target.value })}
+                                                className={errors.roomLocation ? "border-red-400" : ""} />
+                                            {errors.roomLocation && <p className="text-xs text-red-500">{errors.roomLocation}</p>}
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
-                                        <Textarea id="description" rows={3}
+                                        <Label htmlFor="spaceDescription">Description <span className="text-red-500">*</span></Label>
+                                        <Textarea id="spaceDescription" rows={3}
                                             placeholder="Describe the facility, its purpose, equipment, and any certifications..."
-                                            value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                                            className={errors.description ? "border-red-400" : ""} />
-                                        {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
+                                            value={form.spaceDescription} onChange={(e) => setForm({ ...form, spaceDescription: e.target.value })}
+                                            className={errors.spaceDescription ? "border-red-400" : ""} />
+                                        {errors.spaceDescription && <p className="text-xs text-red-500">{errors.spaceDescription}</p>}
                                     </div>
                                 </div>
 

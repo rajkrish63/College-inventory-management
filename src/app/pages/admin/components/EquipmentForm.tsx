@@ -8,38 +8,38 @@ import { Textarea } from "../../../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select";
 import { cn } from "../../../components/ui/utils";
 
-export const eqCats = ["Analytical Chemistry", "Materials Characterization", "Molecular Biology", "Cell Biology", "Electrochemistry", "Electronics", "Computing", "Biotechnology", "Physics", "Other"];
+export const eqCats = ["Analytical Instruments", "Microscopy & Imaging", "Molecular Biology", "Cell Culture & Preparation", "Electronics & Prototyping", "Computing & AI", "Other"];
 export const eqStatuses = ["Available", "In Use", "Maintenance"];
 
 export interface EquipmentState {
     id: string | number;
-    name: string;
-    category: string;
+    equipmentName: string;
+    equipmentCategory: string;
     manufacturer: string;
-    model: string;
-    status: "Available" | "In Use" | "Maintenance";
-    description: string;
+    modelNumber: string;
+    initialStatus: "Available" | "In Use" | "Maintenance";
+    instrumentDescription: string;
     specInput: string;
-    specs: string[];
+    technicalSpecifications: string[];
     appInput: string;
-    apps: string[];
+    researchApplications: string[];
     expanded: boolean;
     errors: Record<string, string>;
-    dbId?: number;
+    dbId?: string;
 }
 
 export const createBlankEq = (): EquipmentState => ({
     id: Date.now() + Math.random(),
-    name: "",
-    category: "",
+    equipmentName: "",
+    equipmentCategory: "",
     manufacturer: "",
-    model: "",
-    status: "Available",
-    description: "",
+    modelNumber: "",
+    initialStatus: "Available",
+    instrumentDescription: "",
     specInput: "",
-    specs: [],
+    technicalSpecifications: [],
     appInput: "",
-    apps: [],
+    researchApplications: [],
     expanded: true,
     errors: {},
 });
@@ -49,13 +49,15 @@ interface EquipmentFormProps {
     updateEq: (id: string | number, field: string, value: any) => void;
     removeEq: (id: string | number) => void;
     addEq: () => void;
+    availableEqCats: string[];
 }
 
 export function EquipmentForm({
     equipments,
     updateEq,
     removeEq,
-    addEq
+    addEq,
+    availableEqCats
 }: EquipmentFormProps) {
     return (
         <section className="w-1/2 flex flex-col bg-slate-50/50 overflow-hidden text-sm">
@@ -97,19 +99,19 @@ export function EquipmentForm({
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h3 className="text-sm font-bold text-slate-800 truncate">
-                                                {eq.name || <span className="text-slate-300 font-normal italic">Nameless Equipment</span>}
+                                                {eq.equipmentName || <span className="text-slate-300 font-normal italic">Nameless Equipment</span>}
                                             </h3>
                                             {eq.manufacturer && (
-                                                <p className="text-[10px] text-slate-400 font-medium">{eq.manufacturer} {eq.model && `• ${eq.model}`}</p>
+                                                <p className="text-[10px] text-slate-400 font-medium">{eq.manufacturer} {eq.modelNumber && `• ${eq.modelNumber}`}</p>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-3 shrink-0">
                                             <Badge variant="outline" className={cn("text-[9px] font-bold px-2 h-5 tracking-tight uppercase",
-                                                eq.status === "Available" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
-                                                    eq.status === "In Use" ? "bg-amber-50 text-amber-700 border-amber-100" :
+                                                eq.initialStatus === "Available" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                                                    eq.initialStatus === "In Use" ? "bg-amber-50 text-amber-700 border-amber-100" :
                                                         "bg-red-50 text-red-700 border-red-100"
                                             )}>
-                                                {eq.status}
+                                                {eq.initialStatus}
                                             </Badge>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); removeEq(eq.id); }}
@@ -129,25 +131,26 @@ export function EquipmentForm({
                                                     <Label className="text-[9px] font-bold uppercase text-slate-500">Equipment Name *</Label>
                                                     <Input
                                                         placeholder="e.g., RT-PCR System"
-                                                        value={eq.name}
-                                                        onChange={(e) => updateEq(eq.id, "name", e.target.value)}
-                                                        className={cn("h-9 text-sm bg-white border-slate-200", eq.errors.name && "border-red-400")}
+                                                        value={eq.equipmentName}
+                                                        onChange={(e) => updateEq(eq.id, "equipmentName", e.target.value)}
+                                                        className={cn("h-9 text-sm bg-white border-slate-200", eq.errors.equipmentName && "border-red-400")}
                                                     />
                                                 </div>
                                                 <div className="space-y-1.5">
                                                     <Label className="text-[9px] font-bold uppercase text-slate-500">Category *</Label>
-                                                    <Select value={eq.category} onValueChange={(v) => updateEq(eq.id, "category", v)}>
-                                                        <SelectTrigger className={cn("h-9 text-sm bg-white border-slate-200", eq.errors.category && "border-red-400")}>
+                                                    <Select value={eq.equipmentCategory} onValueChange={(v) => updateEq(eq.id, "equipmentCategory", v)}>
+                                                        <SelectTrigger className={cn("h-9 text-sm bg-white border-slate-200", eq.errors.equipmentCategory && "border-red-400")}>
                                                             <SelectValue placeholder="Select" />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            {eqCats.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                                            {availableEqCats.filter(Boolean).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                                            {availableEqCats.length === 0 && <SelectItem value="Other" disabled>Select Facility Category First</SelectItem>}
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
                                                 <div className="space-y-1.5">
                                                     <Label className="text-[9px] font-bold uppercase text-slate-500">Initial Status</Label>
-                                                    <Select value={eq.status} onValueChange={(v) => updateEq(eq.id, "status", v)}>
+                                                    <Select value={eq.initialStatus} onValueChange={(v) => updateEq(eq.id, "initialStatus", v)}>
                                                         <SelectTrigger className="h-9 text-sm bg-white border-slate-200">
                                                             <SelectValue />
                                                         </SelectTrigger>
@@ -169,9 +172,9 @@ export function EquipmentForm({
                                                     <Label className="text-[9px] font-bold uppercase text-slate-500">Model Number *</Label>
                                                     <Input
                                                         placeholder="e.g., CFX Opus"
-                                                        value={eq.model}
-                                                        onChange={(e) => updateEq(eq.id, "model", e.target.value)}
-                                                        className={cn("h-9 text-sm bg-white border-slate-200", eq.errors.model && "border-red-400")}
+                                                        value={eq.modelNumber}
+                                                        onChange={(e) => updateEq(eq.id, "modelNumber", e.target.value)}
+                                                        className={cn("h-9 text-sm bg-white border-slate-200", eq.errors.modelNumber && "border-red-400")}
                                                     />
                                                 </div>
                                             </div>
@@ -180,9 +183,9 @@ export function EquipmentForm({
                                                 <Label className="text-[9px] font-bold uppercase text-slate-500">Instrument Description *</Label>
                                                 <Textarea
                                                     placeholder="Technical summary and use cases..."
-                                                    value={eq.description}
-                                                    onChange={(e) => updateEq(eq.id, "description", e.target.value)}
-                                                    className={cn("text-xs bg-white border-slate-200 min-h-[60px]", eq.errors.description && "border-red-400")}
+                                                    value={eq.instrumentDescription}
+                                                    onChange={(e) => updateEq(eq.id, "instrumentDescription", e.target.value)}
+                                                    className={cn("text-xs bg-white border-slate-200 min-h-[60px]", eq.errors.instrumentDescription && "border-red-400")}
                                                 />
                                             </div>
 
@@ -195,22 +198,22 @@ export function EquipmentForm({
                                                             placeholder="e.g., 0.1nm resolution"
                                                             value={eq.specInput}
                                                             onChange={(e) => updateEq(eq.id, "specInput", e.target.value)}
-                                                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), updateEq(eq.id, "specs", [...eq.specs, eq.specInput]), updateEq(eq.id, "specInput", ""))}
+                                                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), updateEq(eq.id, "technicalSpecifications", [...eq.technicalSpecifications, eq.specInput]), updateEq(eq.id, "specInput", ""))}
                                                             className="h-9 text-sm bg-white border-slate-200"
                                                         />
                                                         <Button
                                                             size="sm" variant="outline"
-                                                            onClick={() => { updateEq(eq.id, "specs", [...eq.specs, eq.specInput]); updateEq(eq.id, "specInput", ""); }}
+                                                            onClick={() => { updateEq(eq.id, "technicalSpecifications", [...eq.technicalSpecifications, eq.specInput]); updateEq(eq.id, "specInput", ""); }}
                                                             className="h-9 w-9 p-0 border-slate-200 text-slate-400"
                                                         >
                                                             <Plus className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                     <div className="flex flex-wrap gap-1.5">
-                                                        {eq.specs.map(s => (
+                                                        {eq.technicalSpecifications.map(s => (
                                                             <Badge key={s} variant="outline" className="text-[10px] font-medium bg-blue-50 text-blue-700 border-blue-100 flex items-center gap-1 group">
                                                                 {s}
-                                                                <X className="h-2.5 w-2.5 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => updateEq(eq.id, "specs", eq.specs.filter(x => x !== s))} />
+                                                                <X className="h-2.5 w-2.5 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => updateEq(eq.id, "technicalSpecifications", eq.technicalSpecifications.filter(x => x !== s))} />
                                                             </Badge>
                                                         ))}
                                                     </div>
@@ -223,22 +226,22 @@ export function EquipmentForm({
                                                             placeholder="e.g., Molecular diagnostics"
                                                             value={eq.appInput}
                                                             onChange={(e) => updateEq(eq.id, "appInput", e.target.value)}
-                                                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), updateEq(eq.id, "apps", [...eq.apps, eq.appInput]), updateEq(eq.id, "appInput", ""))}
+                                                            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), updateEq(eq.id, "researchApplications", [...eq.researchApplications, eq.appInput]), updateEq(eq.id, "appInput", ""))}
                                                             className="h-9 text-sm bg-white border-slate-200"
                                                         />
                                                         <Button
                                                             size="sm" variant="outline"
-                                                            onClick={() => { updateEq(eq.id, "apps", [...eq.apps, eq.appInput]); updateEq(eq.id, "appInput", ""); }}
+                                                            onClick={() => { updateEq(eq.id, "researchApplications", [...eq.researchApplications, eq.appInput]); updateEq(eq.id, "appInput", ""); }}
                                                             className="h-9 w-9 p-0 border-slate-200 text-slate-400"
                                                         >
                                                             <Plus className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                     <div className="flex flex-wrap gap-1.5">
-                                                        {eq.apps.map(a => (
+                                                        {eq.researchApplications.map(a => (
                                                             <Badge key={a} variant="outline" className="text-[10px] font-medium bg-slate-100 text-slate-600 border-slate-200 flex items-center gap-1 group">
                                                                 {a}
-                                                                <X className="h-2.5 w-2.5 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => updateEq(eq.id, "apps", eq.apps.filter(x => x !== a))} />
+                                                                <X className="h-2.5 w-2.5 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => updateEq(eq.id, "researchApplications", eq.researchApplications.filter(x => x !== a))} />
                                                             </Badge>
                                                         ))}
                                                     </div>

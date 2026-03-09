@@ -10,19 +10,21 @@ import {
 } from "../components/ui/select";
 import { useAppContext } from "../context/AppContext";
 
-const categories = ["All", "Analytical Chemistry", "Materials Characterization", "Molecular Biology", "Cell Biology", "Electrochemistry"];
-
 export function EquipmentPage() {
-  const { equipment: equipmentData } = useAppContext();
+  const { equipment: equipmentData, facilities } = useAppContext();
+
+  // Dynamically derive categories from data
+  const categories = ["All", ...Array.from(new Set(equipmentData.map(e => e.equipmentCategory).filter(Boolean)))];
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
 
   const filteredEquipment = equipmentData.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
-    const matchesStatus = selectedStatus === "All" || item.status === selectedStatus;
+    const matchesSearch = (item.equipmentName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.instrumentDescription || "").toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || item.equipmentCategory === selectedCategory;
+    const matchesStatus = selectedStatus === "All" || item.initialStatus === selectedStatus;
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
@@ -104,25 +106,25 @@ export function EquipmentPage() {
               <Card key={equipment.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <CardTitle className="text-lg leading-tight">{equipment.name}</CardTitle>
+                    <CardTitle className="text-lg leading-tight">{equipment.equipmentName}</CardTitle>
                     <Badge
                       variant={
-                        equipment.status === "Available" ? "default" :
-                        equipment.status === "In Use" ? "secondary" : "destructive"
+                        equipment.initialStatus === "Available" ? "default" :
+                          equipment.initialStatus === "In Use" ? "secondary" : "destructive"
                       }
                       className={
-                        equipment.status === "Available" ? "bg-green-500" :
-                        equipment.status === "In Use" ? "bg-orange-500" : ""
+                        equipment.initialStatus === "Available" ? "bg-green-500" :
+                          equipment.initialStatus === "In Use" ? "bg-orange-500" : ""
                       }
                     >
-                      {equipment.status}
+                      {equipment.initialStatus}
                     </Badge>
                   </div>
                   <Badge variant="outline" className="w-fit mb-2">
-                    {equipment.category}
+                    {equipment.equipmentCategory}
                   </Badge>
                   <CardDescription>
-                    {equipment.description}
+                    {equipment.instrumentDescription}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -133,18 +135,20 @@ export function EquipmentPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Model:</span>
-                      <span className="font-medium">{equipment.model}</span>
+                      <span className="font-medium">{equipment.modelNumber}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Location:</span>
-                      <span className="font-medium text-right">{equipment.location}</span>
+                      <span className="font-medium text-right">
+                        {facilities.find(f => f.id === equipment.facilityId)?.facilityName || "Unknown facility"}
+                      </span>
                     </div>
                   </div>
 
                   <div>
                     <h4 className="font-semibold text-sm mb-2">Key Specifications:</h4>
                     <div className="flex flex-wrap gap-1">
-                      {equipment.specifications.map((spec, idx) => (
+                      {(equipment.technicalSpecifications || []).map((spec, idx) => (
                         <Badge key={idx} variant="secondary" className="text-xs">
                           {spec}
                         </Badge>
@@ -155,7 +159,7 @@ export function EquipmentPage() {
                   <div>
                     <h4 className="font-semibold text-sm mb-2">Applications:</h4>
                     <div className="flex flex-wrap gap-1">
-                      {equipment.applications.map((app, idx) => (
+                      {(equipment.researchApplications || []).map((app, idx) => (
                         <Badge key={idx} variant="outline" className="text-xs">
                           {app}
                         </Badge>
@@ -164,9 +168,9 @@ export function EquipmentPage() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full" asChild disabled={equipment.status !== "Available"}>
+                  <Button className="w-full" asChild disabled={equipment.initialStatus !== "Available"}>
                     <Link to="/booking">
-                      {equipment.status === "Available" ? "Book Equipment" : equipment.status}
+                      {equipment.initialStatus === "Available" ? "Book Equipment" : equipment.initialStatus}
                     </Link>
                   </Button>
                 </CardFooter>

@@ -10,7 +10,7 @@ import {
 } from "../components/ui/select";
 import { Pencil, X, Upload } from "lucide-react";
 import { useAppContext } from "../context/AppContext";
-import { useLocation } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 
 const timeSlots = [
   "08:00 - 10:00", "10:00 - 12:00", "12:00 - 14:00",
@@ -20,6 +20,7 @@ const timeSlots = [
 export function BookingPage() {
   const { facilities, equipment: equipmentList, addBooking, currentUser, users } = useAppContext();
   const location = useLocation();
+  const navigate = useNavigate();
   const routeState = location.state as {
     equipment?: string; equipCategory?: string; equipFacility?: string;
     facility?: string; type?: string;
@@ -47,8 +48,6 @@ export function BookingPage() {
     quantity: 1,
     date: "", timeSlot: "", purpose: "",
   });
-  const [idProofUrl, setIdProofUrl] = useState<string | null>(null);
-  const [idProofConfirmed, setIdProofConfirmed] = useState(false);
 
   // Update extraPersons array when persons count changes
   useEffect(() => {
@@ -72,9 +71,9 @@ export function BookingPage() {
     if (!resolvedFacility && (equipCat || equipName)) {
       // Find facility whose features include the equipment category
       const match = facilities.find((f) =>
-        f.features.some((feat) => feat.toLowerCase() === equipCat.toLowerCase())
+        (f.keyFacilityFeatures || []).some((feat) => feat.toLowerCase() === equipCat.toLowerCase())
       );
-      if (match) resolvedFacility = match.name;
+      if (match) resolvedFacility = match.facilityName;
     }
 
     setFormData((prev) => ({
@@ -91,6 +90,8 @@ export function BookingPage() {
       name: formData.name, email: formData.email, department: formData.department,
       type: formData.type, facility: formData.facility, equipment: formData.equipment,
       date: formData.date, timeSlot: formData.timeSlot, purpose: formData.purpose,
+      persons: formData.type === "facility" ? persons : undefined,
+      quantity: formData.type === "equipment" ? formData.quantity : undefined,
     });
     setBookingId(id);
     setSubmitted(true);
@@ -99,23 +100,9 @@ export function BookingPage() {
   const resetForm = () => {
     setSubmitted(false);
     setFormData({ name: "", email: "", department: "", type: "equipment", facility: "", equipFacility: "", equipCategory: "", equipment: "", quantity: 1, date: "", timeSlot: "", purpose: "" });
-    setIdProofUrl(null);
-    setIdProofConfirmed(false);
+    navigate("/my-bookings");
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setIdProofUrl(url);
-      setIdProofConfirmed(false);
-    }
-  };
-
-  const handleRemoveFile = () => {
-    setIdProofUrl(null);
-    setIdProofConfirmed(false);
-  };
   // The submitted dialog is now rendered as a modal at the end of the return statement.
 
   return (
@@ -184,8 +171,8 @@ export function BookingPage() {
                         <Select required value={formData.facility} onValueChange={(v) => setFormData({ ...formData, facility: v })}>
                           <SelectTrigger id="facility"><SelectValue placeholder="Select a facility" /></SelectTrigger>
                           <SelectContent>
-                            {facilities.filter((f) => f.availability !== "Unavailable").map((f) => (
-                              <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>
+                            {facilities.filter((f) => f.availabilityStatus !== "Unavailable").map((f) => (
+                              <SelectItem key={f.id} value={f.facilityName}>{f.facilityName}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -253,8 +240,8 @@ export function BookingPage() {
                         >
                           <SelectTrigger id="equipFacility"><SelectValue placeholder="Select a facility" /></SelectTrigger>
                           <SelectContent>
-                            {facilities.filter((f) => f.availability !== "Unavailable").map((f) => (
-                              <SelectItem key={f.id} value={f.name}>{f.name}</SelectItem>
+                            {facilities.filter((f) => f.availabilityStatus !== "Unavailable").map((f) => (
+                              <SelectItem key={f.id} value={f.facilityName}>{f.facilityName}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -262,8 +249,8 @@ export function BookingPage() {
 
                       {/* Step 2: Equipment Category (from facility features) */}
                       {formData.equipFacility && (() => {
-                        const selectedFacility = facilities.find((f) => f.name === formData.equipFacility);
-                        const categories = selectedFacility?.features ?? [];
+                        const selectedFacility = facilities.find((f) => f.facilityName === formData.equipFacility);
+                        const categories = selectedFacility?.keyFacilityFeatures ?? [];
                         return (
                           <div className="space-y-2">
                             <Label htmlFor="equipCategory">Equipment Category *</Label>
@@ -287,9 +274,9 @@ export function BookingPage() {
                       {formData.equipCategory && (() => {
                         const filtered = equipmentList.filter(
                           (e) =>
-                            e.status === "Available" &&
-                            (e.category.toLowerCase() === formData.equipCategory.toLowerCase() ||
-                              e.name.toLowerCase().includes(formData.equipCategory.toLowerCase()))
+                            e.initialStatus === "Available" &&
+                            ((e.equipmentCategory || "").toLowerCase() === formData.equipCategory.toLowerCase() ||
+                              (e.equipmentName || "").toLowerCase().includes(formData.equipCategory.toLowerCase()))
                         );
                         return (
                           <div className="space-y-2">
@@ -303,7 +290,7 @@ export function BookingPage() {
                               <SelectContent>
                                 {filtered.length > 0 ? (
                                   filtered.map((item) => (
-                                    <SelectItem key={item.id} value={item.name}>{item.name}</SelectItem>
+                                    <SelectItem key={item.id} value={item.equipmentName}>{item.equipmentName}</SelectItem>
                                   ))
                                 ) : (
                                   <SelectItem value="__none" disabled>No available equipment in this category</SelectItem>
@@ -361,89 +348,7 @@ export function BookingPage() {
                   </div>
                 </div>
 
-                <h3 className="font-semibold text-lg">Additional Information</h3>
                 <div className="space-y-4">
-                  <Label htmlFor="idProof">Upload ID Proof *</Label>
-                  {!idProofUrl ? (
-                    <label
-                      htmlFor="idProof"
-                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 hover:border-blue-400 transition-all group"
-                    >
-                      <div className="flex flex-col items-center justify-center gap-1 text-center">
-                        <svg className="h-8 w-8 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <p className="text-sm text-gray-500 group-hover:text-blue-600">
-                          <span className="font-medium">Click to upload</span> your ID proof
-                        </p>
-                        <p className="text-xs text-gray-400">Aadhar card, Passport, or Institution ID (JPG, PNG, PDF)</p>
-                      </div>
-                      <input id="idProof" type="file" accept="image/*,.pdf" className="hidden" required onChange={handleFileChange} />
-                    </label>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="relative w-full aspect-video sm:aspect-auto sm:h-48 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 shadow-inner group">
-                        <img src={idProofUrl} alt="ID Proof Preview" className="w-full h-full object-contain" />
-
-                        {/* Overlay Controls */}
-                        {!idProofConfirmed && (
-                          <div className="absolute top-3 right-3 flex gap-2">
-                            <label htmlFor="idProof" className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-full shadow-lg cursor-pointer transition-all hover:scale-110">
-                              <Pencil className="w-4 h-4" />
-                              <input id="idProof" type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileChange} />
-                            </label>
-                            <button
-                              type="button"
-                              onClick={handleRemoveFile}
-                              className="p-2 bg-white/90 hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-full shadow-lg transition-all hover:scale-110"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-
-                        {idProofConfirmed && (
-                          <div className="absolute inset-0 bg-green-600/10 backdrop-blur-[1px] flex items-center justify-center">
-                            <div className="bg-white/90 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-green-700 font-bold border border-green-200">
-                              <CheckCircle className="w-5 h-5" />
-                              ID Proof Confirmed
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {!idProofConfirmed ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 bg-blue-50/30 font-bold h-11 rounded-xl"
-                          onClick={() => setIdProofConfirmed(true)}
-                        >
-                          Confirm & Lock Upload
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="w-full text-gray-500 hover:text-gray-700 text-xs font-bold"
-                          onClick={() => setIdProofConfirmed(false)}
-                        >
-                          Change Image
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3 mt-4">
-                    <span className="text-amber-500 text-lg mt-0.5">⚠️</span>
-                    <div>
-                      <h3 className="font-semibold text-amber-800 text-sm">ID Proof Required</h3>
-                      <p className="text-xs text-amber-700 mt-0.5">Please carry a valid government-issued ID (Aadhar card, passport, or institution ID) on the day of your visit. Access will not be granted without verification.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="purpose">Research Purpose *</Label>
                   <Textarea id="purpose" rows={4} required
                     placeholder="Please describe your research purpose and how you plan to use the facility/equipment..."

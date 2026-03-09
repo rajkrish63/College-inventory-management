@@ -63,14 +63,8 @@ export function Navigation({ onMenuClick, onLogoutClick }: NavigationProps) {
           </>
         ) : (
           <>
-            <Button variant="ghost" size="sm" asChild className="text-slate-600 gap-1.5">
-              <Link to="/admin"><Shield className="h-4 w-4" />Admin</Link>
-            </Button>
             <Button variant="outline" size="sm" asChild className="gap-1.5">
-              <Link to="/login"><LogIn className="h-4 w-4" />Login</Link>
-            </Button>
-            <Button size="sm" asChild className="gap-1.5">
-              <Link to="/register"><UserPlus className="h-4 w-4" />Register</Link>
+              <Link to="/login"><LogIn className="h-4 w-4" />Sign In</Link>
             </Button>
           </>
         )}
@@ -112,19 +106,10 @@ export function Navigation({ onMenuClick, onLogoutClick }: NavigationProps) {
                 </>
               ) : (
                 <>
-                  <Link to="/admin" className="flex items-center gap-2 px-2 py-2.5 rounded-lg text-sm text-slate-700 hover:bg-slate-50 font-medium"
-                    onClick={() => setIsMenuOpen(false)}>
-                    <Shield className="h-4 w-4 text-blue-600" />Admin Portal
-                  </Link>
                   <Link to="/login" className="flex items-center gap-2 px-2 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 font-medium"
                     onClick={() => setIsMenuOpen(false)}>
-                    <LogIn className="h-4 w-4 text-gray-400" />Login
+                    <LogIn className="h-4 w-4 text-gray-400" />Sign In
                   </Link>
-                  <Button className="w-full justify-start pl-2" asChild>
-                    <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-                      <UserPlus className="h-4 w-4 mr-2" />Create Account
-                    </Link>
-                  </Button>
                 </>
               )}
             </div>

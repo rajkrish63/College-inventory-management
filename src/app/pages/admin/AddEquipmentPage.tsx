@@ -11,12 +11,12 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "../../components/ui/select";
 import { useAppContext } from "../../context/AppContext";
+import { getEquipmentCategories } from "../../services/firestoreService";
+import categoryMapData from "../../data/categories.json";
 
-const categories = [
-    "Analytical Chemistry", "Materials Characterization", "Molecular Biology",
-    "Cell Biology", "Electrochemistry", "Electronics", "Computing",
-    "Biotechnology", "Physics", "Other",
-];
+const categoryMap: Record<string, string[]> = categoryMapData;
+
+// Categories are now dynamic based on facility
 
 export function AddEquipmentPage() {
     const { addEquipment, updateEquipment, equipment } = useAppContext();
@@ -28,46 +28,71 @@ export function AddEquipmentPage() {
     const [loading, setLoading] = useState(false);
 
     const [form, setForm] = useState({
-        name: "", category: "", manufacturer: "", model: "", location: "",
-        status: "Available" as "Available" | "In Use" | "Maintenance",
-        description: "",
+        equipmentName: "",
+        equipmentCategory: "",
+        manufacturer: "",
+        modelNumber: "",
+        facilityId: "",
+        initialStatus: "Available" as "Available" | "In Use" | "Maintenance",
+        instrumentDescription: "",
     });
+    const { facilities } = useAppContext();
+    const [availableCategories, setAvailableCategories] = useState<string[]>([]);
     const [specInput, setSpecInput] = useState("");
     const [specs, setSpecs] = useState<string[]>([]);
     const [appInput, setAppInput] = useState("");
     const [apps, setApps] = useState<string[]>([]);
+    const [facilityId, setFacilityId] = useState(""); // New state variable
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (isEditMode && equipment.length > 0 && id) {
-            const itemId = parseInt(id);
-            const item = equipment.find(e => e.id === itemId);
+            const item = equipment.find(e => e.id === id);
             if (item) {
                 setForm({
-                    name: item.name,
-                    category: item.category,
+                    equipmentName: item.equipmentName,
+                    equipmentCategory: item.equipmentCategory,
                     manufacturer: item.manufacturer,
-                    model: item.model,
-                    location: item.location,
-                    status: item.status,
-                    description: item.description,
+                    modelNumber: item.modelNumber,
+                    facilityId: item.facilityId,
+                    initialStatus: item.initialStatus,
+                    instrumentDescription: item.instrumentDescription,
                 });
-                setSpecs(item.specifications || []);
-                setApps(item.applications || []);
+                setFacilityId(item.facilityId);
+                setSpecs(item.technicalSpecifications || []);
+                setApps(item.researchApplications || []);
             }
         } else if (!isEditMode) {
             resetForm();
         }
     }, [isEditMode, id, equipment]);
 
+    // Handle Category Filtering
+    useEffect(() => {
+        if (form.facilityId) {
+            const facility = facilities.find(f => f.id === form.facilityId);
+            if (facility) {
+                getEquipmentCategories(facility.facilityCategory).then(cats => {
+                    if (cats.length > 0) {
+                        setAvailableCategories(cats);
+                    } else {
+                        setAvailableCategories(categoryMap[facility.facilityCategory] || []);
+                    }
+                });
+            }
+        } else {
+            setAvailableCategories([]);
+        }
+    }, [form.facilityId, facilities, categoryMap]);
+
     const validate = () => {
         const e: Record<string, string> = {};
-        if (!form.name.trim()) e.name = "Required";
-        if (!form.category) e.category = "Required";
+        if (!form.equipmentName.trim()) e.equipmentName = "Required";
+        if (!form.equipmentCategory) e.equipmentCategory = "Required";
         if (!form.manufacturer.trim()) e.manufacturer = "Required";
-        if (!form.model.trim()) e.model = "Required";
-        if (!form.location.trim()) e.location = "Required";
-        if (!form.description.trim()) e.description = "Required";
+        if (!form.modelNumber.trim()) e.modelNumber = "Required";
+        if (!form.facilityId) e.facilityId = "Required";
+        if (!form.instrumentDescription.trim()) e.instrumentDescription = "Required";
         return e;
     };
 
@@ -85,21 +110,25 @@ export function AddEquipmentPage() {
         if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
         setLoading(true);
-        // Simulate slight delay for premium feel
         setTimeout(() => {
+            const data = { // Renamed submission to data
+                ...form,
+                technicalSpecifications: specs,
+                researchApplications: apps
+            };
             if (isEditMode) {
-                updateEquipment(parseInt(id), { ...form, specifications: specs, applications: apps });
+                updateEquipment(form.facilityId, id!, data);
             } else {
-                addEquipment({ ...form, specifications: specs, applications: apps });
+                addEquipment(form.facilityId, data);
             }
-            setAddedName(form.name);
+            setAddedName(form.equipmentName);
             setDone(true);
             setLoading(false);
         }, 800);
     };
 
     const resetForm = () => {
-        setForm({ name: "", category: "", manufacturer: "", model: "", location: "", status: "Available", description: "" });
+        setForm({ equipmentName: "", equipmentCategory: "", manufacturer: "", modelNumber: "", facilityId: "", initialStatus: "Available", instrumentDescription: "" });
         setSpecs([]); setApps([]); setErrors({}); setDone(false);
     };
 
@@ -157,7 +186,7 @@ export function AddEquipmentPage() {
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">{isEditMode ? "Edit Equipment" : "Add New Equipment"}</h1>
-                        <p className="text-slate-400 text-sm">{isEditMode ? `Updating "${form.name}"` : "Add a new instrument to the research catalog"}</p>
+                        <p className="text-slate-400 text-sm">{isEditMode ? `Updating "${form.equipmentName}"` : "Add a new instrument to the research catalog"}</p>
                     </div>
                 </div>
             </div>
@@ -176,29 +205,41 @@ export function AddEquipmentPage() {
                                 <div className="space-y-4">
                                     <h3 className="font-semibold border-b pb-2 text-gray-800">Basic Information</h3>
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="name">Equipment Name <span className="text-red-500">*</span></Label>
-                                        <Input id="name" placeholder="e.g., Scanning Electron Microscope"
-                                            value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                            className={errors.name ? "border-red-400" : ""} />
-                                        {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+                                        <Label htmlFor="equipmentName">Equipment Name <span className="text-red-500">*</span></Label>
+                                        <Input id="equipmentName" placeholder="e.g., Scanning Electron Microscope"
+                                            value={form.equipmentName} onChange={(e) => setForm({ ...form, equipmentName: e.target.value })}
+                                            className={errors.equipmentName ? "border-red-400" : ""} />
+                                        {errors.equipmentName && <p className="text-xs text-red-500">{errors.equipmentName}</p>}
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="facilityId">Facility <span className="text-red-500">*</span></Label>
+                                        <Select value={form.facilityId} onValueChange={(v) => setForm({ ...form, facilityId: v })}>
+                                            <SelectTrigger id="facilityId" className={errors.facilityId ? "border-red-400" : ""}>
+                                                <SelectValue placeholder="Select facility" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {facilities.map((f) => <SelectItem key={f.id} value={f.id}>{f.facilityName}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        {errors.facilityId && <p className="text-xs text-red-500">{errors.facilityId}</p>}
                                     </div>
                                     <div className="grid sm:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="category">Category <span className="text-red-500">*</span></Label>
-                                            <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                                                <SelectTrigger id="category" className={errors.category ? "border-red-400" : ""}>
-                                                    <SelectValue placeholder="Select category" />
+                                            <Label htmlFor="equipmentCategory">Category <span className="text-red-500">*</span></Label>
+                                            <Select value={form.equipmentCategory} onValueChange={(v) => setForm({ ...form, equipmentCategory: v })} disabled={!form.facilityId}>
+                                                <SelectTrigger id="equipmentCategory" className={errors.equipmentCategory ? "border-red-400" : ""}>
+                                                    <SelectValue placeholder={form.facilityId ? "Select category" : "Select facility first"} />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                                    {availableCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
-                                            {errors.category && <p className="text-xs text-red-500">{errors.category}</p>}
+                                            {errors.equipmentCategory && <p className="text-xs text-red-500">{errors.equipmentCategory}</p>}
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="status">Initial Status</Label>
-                                            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as typeof form.status })}>
-                                                <SelectTrigger id="status"><SelectValue /></SelectTrigger>
+                                            <Label htmlFor="initialStatus">Initial Status</Label>
+                                            <Select value={form.initialStatus} onValueChange={(v) => setForm({ ...form, initialStatus: v as typeof form.initialStatus })}>
+                                                <SelectTrigger id="initialStatus"><SelectValue /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="Available">Available</SelectItem>
                                                     <SelectItem value="In Use">In Use</SelectItem>
@@ -216,26 +257,19 @@ export function AddEquipmentPage() {
                                             {errors.manufacturer && <p className="text-xs text-red-500">{errors.manufacturer}</p>}
                                         </div>
                                         <div className="space-y-1.5">
-                                            <Label htmlFor="model">Model Number <span className="text-red-500">*</span></Label>
-                                            <Input id="model" placeholder="e.g., JSM-7800F"
-                                                value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })}
-                                                className={errors.model ? "border-red-400" : ""} />
-                                            {errors.model && <p className="text-xs text-red-500">{errors.model}</p>}
+                                            <Label htmlFor="modelNumber">Model Number <span className="text-red-500">*</span></Label>
+                                            <Input id="modelNumber" placeholder="e.g., JSM-7800F"
+                                                value={form.modelNumber} onChange={(e) => setForm({ ...form, modelNumber: e.target.value })}
+                                                className={errors.modelNumber ? "border-red-400" : ""} />
+                                            {errors.modelNumber && <p className="text-xs text-red-500">{errors.modelNumber}</p>}
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="location">Location <span className="text-red-500">*</span></Label>
-                                        <Input id="location" placeholder="e.g., Materials Lab - Room 205"
-                                            value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}
-                                            className={errors.location ? "border-red-400" : ""} />
-                                        {errors.location && <p className="text-xs text-red-500">{errors.location}</p>}
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="description">Description <span className="text-red-500">*</span></Label>
-                                        <Textarea id="description" rows={3} placeholder="Describe capabilities and intended use..."
-                                            value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                                            className={errors.description ? "border-red-400" : ""} />
-                                        {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
+                                        <Label htmlFor="instrumentDescription">Description <span className="text-red-500">*</span></Label>
+                                        <Textarea id="instrumentDescription" rows={3} placeholder="Describe capabilities and intended use..."
+                                            value={form.instrumentDescription} onChange={(e) => setForm({ ...form, instrumentDescription: e.target.value })}
+                                            className={errors.instrumentDescription ? "border-red-400" : ""} />
+                                        {errors.instrumentDescription && <p className="text-xs text-red-500">{errors.instrumentDescription}</p>}
                                     </div>
                                 </div>
 
