@@ -1,9 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
-  getEquipment as fsGetEquipment,
-  getFacilities as fsGetFacilities,
-  getBookings as fsGetBookings,
-  getUsers as fsGetUsers,
   addEquipmentDoc,
   updateEquipmentDoc,
   deleteEquipmentDoc,
@@ -16,8 +12,19 @@ import {
   updateUserDoc,
   updateUserStatusDoc,
   batchUpdateEquipment as fsBatchUpdateEquipment,
+  mapEquipment,
+  mapFacility,
 } from "../services/firestoreService";
-import { auth } from "../../firebase";
+import { db, auth } from "../../firebase";
+import { seedAllCollections } from "../services/seedFirestore";
+import {
+  collection,
+  onSnapshot,
+  collectionGroup,
+  doc,
+  getDoc,
+  setDoc,
+} from "firebase/firestore";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -57,6 +64,7 @@ export interface Booking {
   id: string;
   name: string;
   email: string;
+  userId?: string;      // Firebase Auth UID for individual history tracking
   department: string;
   type: string;
   facility: string;
@@ -79,8 +87,6 @@ export interface AppUser {
   institution: string;
   role: string;
   phone: string;
-  // Make idProof optional to avoid breaking existing users without proofs yet
-  idProof?: string;
   status: "Active" | "Pending" | "Inactive";
   joinedAt: string;
   profilePic?: string;
@@ -132,13 +138,16 @@ interface AppContextType {
 
   // Bookings
   bookings: Booking[];
-  addBooking: (booking: Omit<Booking, "id" | "status" | "submittedAt">) => string;
+  addBooking: (booking: Omit<Booking, "id" | "status" | "submittedAt">) => Promise<string>;
   updateBookingStatus: (id: string, status: Booking["status"]) => void;
 
   // Users
   users: AppUser[];
   registerUser: (user: Omit<AppUser, "id" | "status" | "joinedAt"> & { password?: string }) => Promise<{ success: boolean; error?: string }>;
   updateUserStatus: (id: string, status: AppUser["status"]) => void;
+
+  // Seeding
+  seedingStatus: string;
 }
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -151,74 +160,103 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [seedingStatus, setSeedingStatus] = useState("");
   const [nextEquipId, setNextEquipId] = useState(1);
   const [nextFacilityId, setNextFacilityId] = useState(1);
 
-  // ── Load data from Firestore on mount ──────────────────────────────────
+  // ── Real-time Firestore listeners ────────────────────────────────────────
   useEffect(() => {
-    async function loadFromFirestore() {
-      try {
-        const [fsEquip, fsFac, fsBook, fsUsr] = await Promise.all([
-          fsGetEquipment(),
-          fsGetFacilities(),
-          fsGetBookings(),
-          fsGetUsers(),
-        ]);
-        setEquipment(fsEquip);
-        if (fsEquip.length > 0) {
-          setNextEquipId(Math.max(...fsEquip.map(e => parseInt(e.id) || 0)) + 1);
-        }
+    const unsubs: (() => void)[] = [];
+
+    // 1. Facilities (real-time)
+    unsubs.push(
+      onSnapshot(collection(db, "facilities"), (snap) => {
+        const fsFac = snap.docs.map(d => mapFacility(d.id, d.data()));
         setFacilities(fsFac);
         if (fsFac.length > 0) {
           setNextFacilityId(Math.max(...fsFac.map(f => parseInt(f.id) || 0)) + 1);
+          setSeedingStatus(""); // Clear once loaded
+        } else {
+          // Auto-seed if database is empty (e.g., after manual delete or first run)
+          setSeedingStatus("Loading sample data...");
+          console.log("🌱 Labs list is empty. Auto-seeding sample data...");
+          seedAllCollections()
+            .then(() => setSeedingStatus("✅ Sample data loaded!"))
+            .catch(err => {
+              console.error("❌ Auto-seed failed:", err);
+              setSeedingStatus("❌ Auto-load failed: Please check Firestore Rules.");
+            });
         }
+      }, (err) => console.warn("Facilities listener error:", err))
+    );
+
+    // 2. Equipment via collectionGroup (real-time)
+    unsubs.push(
+      onSnapshot(collectionGroup(db, "equipment"), (snap) => {
+        const fsEquip = snap.docs.map(d => mapEquipment(d.id, d.data()));
+        setEquipment(fsEquip);
+        if (fsEquip.length > 0)
+          setNextEquipId(Math.max(...fsEquip.map(e => parseInt(e.id) || 0)) + 1);
+      }, (err) => console.warn("Equipment listener error:", err))
+    );
+
+    // 3. Bookings (real-time) — admin sees new bookings instantly
+    unsubs.push(
+      onSnapshot(collection(db, "bookings"), (snap) => {
+        const fsBook = snap.docs.map(d => ({ ...d.data(), id: d.id } as Booking));
         setBookings(fsBook);
+        console.log("🔄 Bookings updated:", fsBook.length);
+      }, (err) => console.warn("Bookings listener error:", err))
+    );
+
+    // 4. Users (real-time) — admin sees new registrations instantly
+    unsubs.push(
+      onSnapshot(collection(db, "users"), (snap) => {
+        const fsUsr = snap.docs.map(d => ({ ...d.data(), id: d.id } as AppUser));
         setUsers(fsUsr);
-        console.log("✅ Loaded data from Firestore");
-      } catch (err) {
-        console.warn("⚠️ Could not load from Firestore, using local data:", err);
-      }
-    }
-    loadFromFirestore();
+        console.log("🔄 Users updated:", fsUsr.length);
+      }, (err) => console.warn("Users listener error:", err))
+    );
+
+    return () => unsubs.forEach(u => u());
   }, []);
 
   // ── Auth Listener ──────────────────────────────────────────────────────────
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
-        // Find user info in our users list or create a basic one
-        // Note: For a robust app, we'd fetch this from Firestore here
-        const existing = users.find(u => u.id === fbUser.uid);
-        if (existing) {
+        const isAdmin = fbUser.email === "clginventorymanagement@gmail.com";
+
+        if (isAdmin) {
+          setCurrentUser({ id: fbUser.uid, name: "Admin", email: fbUser.email!, role: "admin" });
+          return;
+        }
+
+        // Fetch user doc from Firestore directly (avoids race condition with React state)
+        const userRef = doc(db, "users", fbUser.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          const data = userSnap.data() as AppUser;
           setCurrentUser({
-            id: existing.id,
-            name: `${existing.firstName} ${existing.lastName}`,
-            email: existing.email,
-            role: (fbUser.email === "clginventorymanagement@gmail.com" ? "admin" : "researcher"),
-            profilePic: existing.profilePic
-          });
-        } else if (fbUser.email === "clginventorymanagement@gmail.com") {
-          setCurrentUser({
-            id: fbUser.uid,
-            name: "Admin",
-            email: fbUser.email,
-            role: "admin"
+            id: data.id,
+            name: `${data.firstName} ${data.lastName}`.trim() || data.email,
+            email: data.email,
+            role: "researcher",
+            profilePic: data.profilePic
           });
         } else {
-          // Fallback if user document hasn't loaded yet or doesn't exist
-          setCurrentUser({
-            id: fbUser.uid,
-            name: fbUser.displayName || fbUser.email?.split('@')[0] || "Researcher",
-            email: fbUser.email || "",
-            role: "researcher"
-          });
+          // Wait for the registerUser function to finish writing the real profile to Firestore
+          const emailName = fbUser.email?.split('@')[0] || "user";
+          setCurrentUser({ id: fbUser.uid, name: emailName, email: fbUser.email || "", role: "researcher" });
         }
       } else {
         setCurrentUser(null);
       }
     });
     return () => unsubscribe();
-  }, [users]);
+  }, []);
+
 
   // Auth
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
@@ -396,13 +434,35 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
   };
 
   // Bookings
-  const addBooking = (booking: Omit<Booking, "id" | "status" | "submittedAt">): string => {
-    const id = `RD - ${1000 + bookings.length + 1} `;
+  const addBooking = async (booking: Omit<Booking, "id" | "status" | "submittedAt">): Promise<string> => {
+    const id = `RD-${Date.now()}`;
     const submittedAt = new Date().toISOString();
     const newBooking = { ...booking, id, status: "Pending" as const, submittedAt };
+
+    // Create sanitized payload (Firestore rejects literal undefined)
+    const firestorePayload: any = { ...newBooking };
+    if (firestorePayload.persons === undefined) delete firestorePayload.persons;
+    if (firestorePayload.quantity === undefined) delete firestorePayload.quantity;
+    if (firestorePayload.userId === undefined) delete firestorePayload.userId;
+
+    // Update local state first for immediate feedback
     setBookings((prev) => [...prev, newBooking]);
-    addBookingDoc(newBooking).catch(console.error);
-    return id;
+
+    // 1. Save to top-level bookings collection
+    try {
+      await addBookingDoc(firestorePayload);
+
+      // 2. Also save to user's personal subcollection
+      if (booking.userId) {
+        await setDoc(doc(db, "users", booking.userId, "bookings", id), firestorePayload);
+      }
+      return id;
+    } catch (err) {
+      console.error("❌ Error adding booking:", err);
+      // Rollback local state on error
+      setBookings((prev) => prev.filter(b => b.id !== id));
+      throw err;
+    }
   };
   const updateBookingStatus = (id: string, status: Booking["status"]) => {
     setBookings((prev) => {
@@ -447,23 +507,31 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
 
       const today = new Date().toISOString().split("T")[0];
       const newUser: AppUser = {
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
         email: user.email,
-        department: user.department,
-        institution: user.institution,
-        role: user.role,
-        phone: user.phone,
-        idProof: user.idProof,
-        researchInterests: user.researchInterests,
+        department: user.department || "",
+        institution: user.institution || "",
+        role: user.role || "",
+        phone: user.phone || "",
+        researchInterests: user.researchInterests || [],
         id: fbUser.uid,
         status: "Active",
         joinedAt: today
       };
 
-      setUsers((prev) => [...prev, newUser]);
-      await addUserDoc(newUser);
+      // Save to Firestore — surface any errors clearly
+      try {
+        await addUserDoc(newUser);
+        console.log("✅ User saved to Firestore:", newUser.email, "| UID:", newUser.id);
+      } catch (firestoreErr: any) {
+        console.error("❌ Firestore write failed:", firestoreErr);
+        // Auth account was created but Firestore failed — still let user in but warn
+        setUsers((prev) => [...prev, newUser]);
+        return { success: true, error: `Account created but profile could not be saved: ${firestoreErr.message}` };
+      }
 
+      setUsers((prev) => [...prev, newUser]);
       return { success: true };
     } catch (error: any) {
       let errorMessage = "An error occurred during registration.";
@@ -479,6 +547,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
       return { success: false, error: errorMessage };
     }
   };
+
   const updateUserStatus = (id: string, status: AppUser["status"]) => {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status } : u)));
     updateUserStatusDoc(id, status).catch(console.error);
@@ -494,6 +563,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
       addFacilityWithEquipment,
       bookings, addBooking, updateBookingStatus,
       users, registerUser, updateUserStatus,
+      seedingStatus
     }}>
       {children}
     </AppContext.Provider>

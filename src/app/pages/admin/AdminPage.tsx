@@ -21,6 +21,7 @@ import { useAppContext } from "../../context/AppContext";
 import type { Booking, Equipment, Facility, AppUser } from "../../context/AppContext";
 import { LogoutModal } from "../../components/LogoutModal";
 import { Modal } from "../../components/Modal";
+import { seedAllCollections } from "../../services/seedFirestore";
 
 import { SettingsContent } from "../SettingsPage";
 
@@ -70,15 +71,23 @@ function StatCard({ label, value, sub, icon: Icon, color }: { label: string; val
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function DashboardSection({ setSection }: { setSection: (s: Section) => void }) {
-  const { equipment, facilities, bookings, users } = useAppContext();
+  const { equipment, facilities, bookings, users, seedingStatus } = useAppContext();
   const pending = bookings.filter((b) => b.status === "Pending").length;
   const approved = bookings.filter((b) => b.status === "Approved").length;
   const available = equipment.filter((e) => e.initialStatus === "Available").length;
   const activeUsers = users.filter((u) => u.status === "Active").length;
   const recent = [...bookings].sort((a, b) => (b.submittedAt || "").localeCompare(a.submittedAt || "")).slice(0, 5);
 
+
   return (
     <div className="space-y-6">
+      {/* Seeding Status / Auto-load Feedback */}
+      {seedingStatus && (
+        <div className={`rounded-xl px-4 py-3 text-sm font-bold flex items-center gap-3 animate-pulse shadow-sm ${seedingStatus.startsWith("✅") ? "bg-green-50 text-green-700 border border-green-200" : seedingStatus.startsWith("❌") ? "bg-red-50 text-red-700 border border-red-200" : "bg-blue-50 text-blue-700 border border-blue-200"}`}>
+          {seedingStatus.startsWith("Loading") && <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />}
+          {seedingStatus}
+        </div>
+      )}
       {/* Stats */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard label="Total Bookings" value={bookings.length} sub={`${approved} approved`} icon={CalendarCheck} color="bg-blue-500" />
@@ -195,9 +204,9 @@ function BookingsSection() {
 
   const filtered = bookings.filter((b) => {
     const q = search.toLowerCase();
-    return (b.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q) || b.email.toLowerCase().includes(q))
+    return ((b.name || "").toLowerCase().includes(q) || (b.id || "").toLowerCase().includes(q) || (b.email || "").toLowerCase().includes(q))
       && (statusFilter === "All" || b.status === statusFilter);
-  }).sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
+  }).sort((a, b) => (a.submittedAt || "").localeCompare(b.submittedAt || ""));
 
   return (
     <div className="space-y-4">
@@ -643,9 +652,9 @@ function UsersSection() {
   const [search, setSearch] = useState("");
 
   const filtered = users.filter((u) =>
-    `${u.firstName} ${u.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    u.institution.toLowerCase().includes(search.toLowerCase())
+    `${u.firstName ?? ""} ${u.lastName ?? ""}`.toLowerCase().includes(search.toLowerCase()) ||
+    (u.email ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (u.institution ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (

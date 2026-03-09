@@ -14,14 +14,18 @@ export function BookingsPage() {
         new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case "Approved": return <Badge className="bg-green-100 text-green-700 hover:bg-green-200">Approved</Badge>;
-            case "Pending": return <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-200">Pending</Badge>;
-            case "Rejected": return <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-200">Rejected</Badge>;
-            default: return <Badge variant="outline">{status}</Badge>;
-        }
-    };
+    function StatusPill({ status }: { status: string }) {
+        const map: Record<string, string> = {
+            Pending: "bg-amber-100 text-amber-800 border-amber-200",
+            Approved: "bg-green-100 text-green-800 border-green-200",
+            Rejected: "bg-red-100 text-red-800 border-red-200",
+        };
+        return (
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${map[status] ?? "bg-gray-100 text-gray-800"}`}>
+                {status}
+            </span>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-gray-50/50 p-6 md:p-10 max-w-5xl mx-auto w-full">
@@ -47,66 +51,72 @@ export function BookingsPage() {
                     <div className="space-y-6">
                         {sortedBookings.map((booking) => {
                             return (
-                                <Card key={booking.id} className="relative overflow-hidden group hover:shadow-md transition-shadow">
-                                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${booking.status === 'Approved' ? 'bg-green-500' : booking.status === 'Pending' ? 'bg-amber-400' : 'bg-red-500'}`} />
-
-                                    <CardHeader className="pb-3 pl-6">
-                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    {booking.type === 'facility' ? (
-                                                        <MapPin className="h-4 w-4 text-blue-500" />
-                                                    ) : (
-                                                        <Package className="h-4 w-4 text-purple-500" />
-                                                    )}
-                                                    <span className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                                                        {booking.type === 'facility' ? 'Facility Booking' : 'Equipment Booking'}
-                                                    </span>
+                                <Card key={booking.id} className="overflow-hidden group hover:shadow-md transition-shadow border-gray-200 rounded-xl">
+                                    <CardHeader className="pb-3 px-6 pt-5">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1.5 min-h-[20px]">
+                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 uppercase tracking-widest bg-gray-50 text-gray-500 border-gray-200 font-bold shrink-0">
+                                                        {booking.type === 'facility' ? 'Facility' : 'Equipment'}
+                                                    </Badge>
+                                                    <span className="text-[10px] font-mono text-gray-400">ID: {booking.id}</span>
                                                 </div>
-                                                <h4 className="text-xl font-bold text-gray-900 leading-tight">
+                                                <h4 className="text-lg font-bold text-gray-900 leading-snug truncate">
                                                     {booking.type === 'facility' ? booking.facility : booking.equipment}
                                                 </h4>
                                                 {booking.type === 'equipment' && booking.facility && (
-                                                    <p className="text-sm text-gray-600">{booking.facility}</p>
+                                                    <p className="text-xs text-gray-500 mt-0.5 font-medium">{booking.facility}</p>
                                                 )}
                                             </div>
-                                            <div className="shrink-0 mt-1 sm:mt-0">
-                                                {getStatusBadge(booking.status)}
+
+                                            <div className="flex items-center gap-6 md:gap-10 sm:justify-start">
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Scheduled</p>
+                                                    <div className="flex items-center gap-2 text-sm text-gray-700 font-medium">
+                                                        <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                                                        <span>{new Date(booking.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                        <Clock className="h-3.5 w-3.5 text-gray-400" />
+                                                        <span>{booking.timeSlot}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-1 hidden sm:block">
+                                                    <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Details</p>
+                                                    {booking.type === 'facility' && booking.persons && (
+                                                        <span className="text-blue-600 text-[11px] flex items-center bg-blue-50 px-2 py-0.5 rounded-full font-bold border border-blue-100 w-fit">
+                                                            <Users className="w-3 h-3 mr-1" />
+                                                            {booking.persons} {booking.persons === 1 ? 'Person' : 'Persons'}
+                                                        </span>
+                                                    )}
+                                                    {booking.type === 'equipment' && booking.quantity && (
+                                                        <span className="text-indigo-600 text-[11px] flex items-center bg-indigo-50 px-2 py-0.5 rounded-full font-bold border border-indigo-100 w-fit">
+                                                            <Package className="w-3 h-3 mr-1" />
+                                                            Qty: {booking.quantity}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="shrink-0 flex flex-col items-end gap-1.5 self-center">
+                                                    <div className="text-[10px] text-gray-400 font-medium">Status</div>
+                                                    <StatusPill status={booking.status} />
+                                                </div>
                                             </div>
                                         </div>
                                     </CardHeader>
 
-                                    <CardContent className="pl-6 pb-5 space-y-4">
-                                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 text-sm text-gray-600">
-                                            <div className="flex items-center gap-2">
-                                                <Calendar className="h-4 w-4 text-gray-400" />
-                                                <span className="font-medium">{new Date(booking.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Clock className="h-4 w-4 text-gray-400" />
-                                                <span className="font-medium">{booking.timeSlot}</span>
-                                            </div>
-                                            {(booking.type === 'facility' && booking.persons) && (
-                                                <div className="flex items-center gap-2">
-                                                    <Users className="h-4 w-4 text-gray-400" />
-                                                    <span className="font-medium">{booking.persons} {booking.persons > 1 ? 'Persons' : 'Person'}</span>
-                                                </div>
+                                    <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between text-[10px]">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-gray-400 font-medium">Submitted on {new Date(booking.submittedAt).toLocaleDateString()}</span>
+                                            {booking.purpose && (
+                                                <span className="text-gray-300">|</span>
                                             )}
-                                            {(booking.type === 'equipment' && booking.quantity) && (
-                                                <div className="flex items-center gap-2">
-                                                    <Package className="h-4 w-4 text-gray-400" />
-                                                    <span className="font-medium">Qty: {booking.quantity}</span>
-                                                </div>
+                                            {booking.purpose && (
+                                                <span className="text-gray-500 italic truncate max-w-[200px] md:max-w-[400px]">"{booking.purpose}"</span>
                                             )}
                                         </div>
-
-                                        <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                                            <span className="font-mono bg-gray-50 px-2 py-1 rounded">ID: {booking.id}</span>
-                                            <span className="flex items-center gap-1.5">
-                                                <Clock className="h-3 w-3" /> Submitted on {new Date(booking.submittedAt).toLocaleDateString()}
-                                            </span>
-                                        </div>
-                                    </CardContent>
+                                    </div>
                                 </Card>
                             );
                         })}

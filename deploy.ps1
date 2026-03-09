@@ -7,20 +7,20 @@ $projectRoot = "C:\Users\rajkr\Downloads\files\Rental website"
 
 # ----- GitHub -------------------------------------------------
 # Your GitHub username / organization
-$githubUser = "rajkrish63"
+$githubUser = "<YOUR_GITHUB_USERNAME>"
 # Desired repository name (must be available on GitHub)
-$repoName = "College-inventory-management"
+$repoName = "rental-website"
 # Full HTTPS remote URL (GitHub will prompt for credentials/token)
 $remoteUrl = "https://github.com/$githubUser/$repoName.git"
 
 # ----- Firebase config (add to hosting env vars later) ---------
 # Replace the placeholders with the values from your Firebase console.
-$env:VITE_FIREBASE_API_KEY = "AIzaSyCFPfg1_skvhleq9m6csun2ZVQAmZvnv9Q"
-$env:VITE_FIREBASE_AUTH_DOMAIN = "college-inventory-d54a2.firebaseapp.com"
-$env:VITE_FIREBASE_PROJECT_ID = "college-inventory-d54a2"
-$env:VITE_FIREBASE_STORAGE_BUCKET = "college-inventory-d54a2.firebasestorage.app"
-$env:VITE_FIREBASE_MESSAGING_SENDER_ID = "28118401786"
-$env:VITE_FIREBASE_APP_ID = "1:28118401786:web:8bfb9a7dd0953756d4ff43"
+$env:VITE_FIREBASE_API_KEY = "<YOUR_FIREBASE_API_KEY>"
+$env:VITE_FIREBASE_AUTH_DOMAIN = "<YOUR_FIREBASE_AUTH_DOMAIN>"
+$env:VITE_FIREBASE_PROJECT_ID = "<YOUR_FIREBASE_PROJECT_ID>"
+$env:VITE_FIREBASE_STORAGE_BUCKET = "<YOUR_FIREBASE_STORAGE_BUCKET>"
+$env:VITE_FIREBASE_MESSAGING_SENDER_ID = "<YOUR_FIREBASE_MESSAGING_SENDER_ID>"
+$env:VITE_FIREBASE_APP_ID = "<YOUR_FIREBASE_APP_ID>"
 
 # --------------------------------------------------------------
 # 2️⃣  PRE‑REQUISITES – make sure they are installed
@@ -111,11 +111,11 @@ git push origin gh-pages --force
 # 7️⃣  VERIFY THE DEPLOYMENT
 # --------------------------------------------------------------
 Write-Host "`n=== VERIFICATION STEPS ==="
-Write-Host "1. Open the URL that your host gave you (Vercel/Netlify/Firebase/GitHub Pages)."
-Write-Host "2. Log in using a Firebase Auth account (or the admin account you created)."
-Write-Host "3. Navigate to the Admin -> Bookings page - you should see real data from Firestore."
-Write-Host "4. Approve a booking and confirm that the facility/equipment status updates automatically."
-Write-Host "5. If anything looks off, open the browser console for errors and double-check the Firebase env vars."
+Write-Host "1️⃣ Open the URL that your host gave you (Vercel/Netlify/Firebase/GitHub Pages)."
+Write-Host "2️⃣ Log in using a Firebase Auth account (or the admin account you created)."
+Write-Host "3️⃣ Navigate to the Admin → Bookings page – you should see real data from Firestore."
+Write-Host "4️⃣ Approve a booking and confirm that the facility/equipment status updates automatically."
+Write-Host "5️⃣ If anything looks off, open the browser console for errors and double‑check the Firebase env vars."
 
 # --------------------------------------------------------------
 # DONE

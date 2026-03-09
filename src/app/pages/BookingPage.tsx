@@ -34,6 +34,8 @@ export function BookingPage() {
 
   const [submitted, setSubmitted] = useState(false);
   const [bookingId, setBookingId] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [persons, setPersons] = useState(1);
   const [extraPersons, setExtraPersons] = useState<{ name: string; email: string }[]>([]);
   const [formData, setFormData] = useState({
@@ -78,23 +80,60 @@ export function BookingPage() {
 
     setFormData((prev) => ({
       ...prev,
-      ...(currentUser ? { name: currentUser.name, email: currentUser.email } : {}),
+      ...(userProfile ? { name: `${userProfile.firstName || ""} ${userProfile.lastName || ""}`.trim() } : {}),
+      ...(currentUser ? { email: currentUser.email } : {}),
       ...(profile ? { department: `${profile.department}, ${profile.institution}` } : {}),
       ...(resolvedFacility ? { equipFacility: resolvedFacility } : {}),
     }));
-  }, [currentUser?.id]);
+  }, [currentUser?.id, userProfile]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const id = addBooking({
-      name: formData.name, email: formData.email, department: formData.department,
-      type: formData.type, facility: formData.facility, equipment: formData.equipment,
-      date: formData.date, timeSlot: formData.timeSlot, purpose: formData.purpose,
-      persons: formData.type === "facility" ? persons : undefined,
-      quantity: formData.type === "equipment" ? formData.quantity : undefined,
-    });
-    setBookingId(id);
-    setSubmitted(true);
+    setErrorMsg("");
+
+    if (!formData.name || !formData.email || !formData.department) {
+      setErrorMsg("Missing personal details. Please ensure your name and department are loaded or filled in.");
+      return;
+    }
+
+    if (formData.type === "facility" && !formData.facility) {
+      setErrorMsg("Please select a facility.");
+      return;
+    }
+    if (formData.type === "equipment" && (!formData.equipFacility || !formData.equipCategory || !formData.equipment)) {
+      setErrorMsg("Please ensure facility, category, and equipment are all selected.");
+      return;
+    }
+    if (!formData.date) {
+      setErrorMsg("Please select a preferred date.");
+      return;
+    }
+    if (!formData.timeSlot) {
+      setErrorMsg("Please select a preferred time slot.");
+      return;
+    }
+    if (!formData.purpose.trim()) {
+      setErrorMsg("Please provide a research purpose.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const id = await addBooking({
+        name: formData.name, email: formData.email, department: formData.department,
+        userId: currentUser?.id,
+        type: formData.type, facility: formData.facility, equipment: formData.equipment,
+        date: formData.date, timeSlot: formData.timeSlot, purpose: formData.purpose,
+        persons: formData.type === "facility" ? persons : undefined,
+        quantity: formData.type === "equipment" ? formData.quantity : undefined,
+      });
+      setBookingId(id);
+      setSubmitted(true);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to submit request. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -136,14 +175,14 @@ export function BookingPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name *</Label>
-                      <Input id="name" placeholder="John Doe" required value={formData.name}
+                      <Input id="name" placeholder="John Doe" value={formData.name}
                         readOnly={!!currentUser}
                         className={currentUser ? "bg-gray-50 text-gray-600 cursor-not-allowed" : ""}
                         onChange={(e) => !currentUser && setFormData({ ...formData, name: e.target.value })} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email Address *</Label>
-                      <Input id="email" type="email" placeholder="john.doe@university.edu" required
+                      <Input id="email" type="email" placeholder="john.doe@university.edu"
                         readOnly={!!currentUser}
                         className={currentUser ? "bg-gray-50 text-gray-600 cursor-not-allowed" : ""}
                         value={formData.email} onChange={(e) => !currentUser && setFormData({ ...formData, email: e.target.value })} />
@@ -151,7 +190,7 @@ export function BookingPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="department">Department/Organization *</Label>
-                    <Input id="department" placeholder="e.g., Chemistry Department, XYZ University" required
+                    <Input id="department" placeholder="e.g., Chemistry Department, XYZ University"
                       readOnly={!!currentUser}
                       className={currentUser ? "bg-gray-50 text-gray-600 cursor-not-allowed" : ""}
                       value={formData.department} onChange={(e) => !currentUser && setFormData({ ...formData, department: e.target.value })} />
@@ -168,7 +207,7 @@ export function BookingPage() {
                       {/* Facility select */}
                       <div className="space-y-2">
                         <Label htmlFor="facility">Facility *</Label>
-                        <Select required value={formData.facility} onValueChange={(v) => setFormData({ ...formData, facility: v })}>
+                        <Select value={formData.facility} onValueChange={(v) => setFormData({ ...formData, facility: v })}>
                           <SelectTrigger id="facility"><SelectValue placeholder="Select a facility" /></SelectTrigger>
                           <SelectContent>
                             {facilities.filter((f) => f.availabilityStatus !== "Unavailable").map((f) => (
@@ -234,7 +273,6 @@ export function BookingPage() {
                       <div className="space-y-2">
                         <Label htmlFor="equipFacility">Facility *</Label>
                         <Select
-                          required
                           value={formData.equipFacility}
                           onValueChange={(v) => setFormData({ ...formData, equipFacility: v, equipCategory: "", equipment: "" })}
                         >
@@ -255,7 +293,6 @@ export function BookingPage() {
                           <div className="space-y-2">
                             <Label htmlFor="equipCategory">Equipment Category *</Label>
                             <Select
-                              required
                               value={formData.equipCategory}
                               onValueChange={(v) => setFormData({ ...formData, equipCategory: v, equipment: "" })}
                             >
@@ -282,7 +319,6 @@ export function BookingPage() {
                           <div className="space-y-2">
                             <Label htmlFor="equipment">Select Equipment *</Label>
                             <Select
-                              required
                               value={formData.equipment}
                               onValueChange={(v) => setFormData({ ...formData, equipment: v })}
                             >
@@ -334,12 +370,12 @@ export function BookingPage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="date">Preferred Date *</Label>
-                    <Input id="date" type="date" required value={formData.date}
+                    <Input id="date" type="date" value={formData.date}
                       onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="timeSlot">Preferred Time Slot *</Label>
-                    <Select required value={formData.timeSlot} onValueChange={(v) => setFormData({ ...formData, timeSlot: v })}>
+                    <Select value={formData.timeSlot} onValueChange={(v) => setFormData({ ...formData, timeSlot: v })}>
                       <SelectTrigger id="timeSlot"><SelectValue placeholder="Select time slot" /></SelectTrigger>
                       <SelectContent>
                         {timeSlots.map((slot) => <SelectItem key={slot} value={slot}>{slot}</SelectItem>)}
@@ -350,12 +386,20 @@ export function BookingPage() {
 
                 <div className="space-y-4">
                   <Label htmlFor="purpose">Research Purpose *</Label>
-                  <Textarea id="purpose" rows={4} required
+                  <Textarea id="purpose" rows={4}
                     placeholder="Please describe your research purpose and how you plan to use the facility/equipment..."
                     value={formData.purpose} onChange={(e) => setFormData({ ...formData, purpose: e.target.value })} />
                 </div>
 
-                <Button type="submit" className="w-full" size="lg">Submit Request</Button>
+                {errorMsg && (
+                  <div className="bg-red-100 text-red-700 border-2 border-red-300 p-4 rounded-xl text-sm font-bold animate-shake">
+                    ⚠️ {errorMsg}
+                  </div>
+                )}
+
+                <Button type="submit" className="w-full py-6 text-lg" disabled={submitting}>
+                  {submitting ? "Processing..." : "Submit Request"}
+                </Button>
               </form>
             </CardContent>
           </Card>

@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow all authenticated users full access to EVERYTHING (all collections and subcollections)
+    // This is required for the "Auto-Seed" feature to work for all data types.
+    match /{document=**} {
+      allow read, write, delete: if request.auth != null;
+    }
+  }
+}
