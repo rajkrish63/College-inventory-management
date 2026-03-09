@@ -51,6 +51,11 @@ export function Navigation({ onMenuClick, onLogoutClick }: NavigationProps) {
       <Navbar.Actions className="hidden md:flex items-center gap-3">
         {currentUser ? (
           <>
+            {currentUser.role === "admin" && (
+              <Button variant="ghost" size="sm" asChild className="text-slate-700 gap-1.5">
+                <Link to="/admin"><Shield className="h-4 w-4" />Admin</Link>
+              </Button>
+            )}
             <UserMenu
               variant="navbar"
               onLogoutClick={onLogoutClick!}
@@ -92,6 +97,12 @@ export function Navigation({ onMenuClick, onLogoutClick }: NavigationProps) {
             <div className="pt-3 border-t border-gray-100 space-y-2 mt-2 px-4 pb-2">
               {currentUser ? (
                 <>
+                  {currentUser.role === "admin" && (
+                    <Link to="/admin" className="flex items-center gap-2 px-2 py-2.5 rounded-lg text-sm text-slate-700 hover:bg-slate-50 font-medium"
+                      onClick={() => setIsMenuOpen(false)}>
+                      <Shield className="h-4 w-4 text-blue-600" />Admin Portal
+                    </Link>
+                  )}
                 </>
               ) : (
                 <>
