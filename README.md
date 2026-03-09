@@ -1,5 +1,7 @@
 # Mahendra R&D Hub: Lab Inventory & Facility Management
 
+**Live Demo**: [https://college-inventory-management-one.vercel.app/](https://college-inventory-management-one.vercel.app/)
+
 A premium, state-of-the-art laboratory management system designed for the Mahendra R&D Center. This platform streamlines the process of discovering research facilities, checking equipment availability, and managing laboratory bookings for researchers and administrators.
 
 ---
