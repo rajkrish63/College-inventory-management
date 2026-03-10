@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router";
-import { FlaskConical, Microscope, Thermometer, Zap, Users, Clock, Dna, Cpu, Atom, Monitor, ChevronRight, LayoutGrid } from "lucide-react";
+import { LayoutGrid, FlaskConical, Dna, Zap, Cpu, Atom, ChevronRight, Package, Info, CheckCircle2, AlertCircle, ArrowLeft, PackageSearch, Users, Monitor, Microscope, Clock, Thermometer } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -152,45 +152,57 @@ export function FacilitiesPage() {
 
                     {(() => {
                       const matchingFacilityIds = filtered.map(f => f.id);
-                      const categories = Array.from(new Set(
+                      const hasEquipmentInSystem = equipment.length > 0;
+
+                      // 1. Try filtered categories
+                      let categories = Array.from(new Set(
                         equipment
                           .filter(e => activeCategory === "All" || matchingFacilityIds.includes(e.facilityId))
                           .map(e => e.equipmentCategory)
                           .filter(Boolean)
                       ));
 
-                      if (equipment.length === 0) {
+                      // 2. Fallback: If specific lab category is empty, show all available categories as discovery
+                      const showAllFallback = activeCategory !== "All" && categories.length === 0 && hasEquipmentInSystem;
+                      if (showAllFallback) {
+                        categories = Array.from(new Set(equipment.map(e => e.equipmentCategory).filter(Boolean)));
+                      }
+
+                      if (!hasEquipmentInSystem) {
                         return (
                           <div className="px-3 py-4 text-xs text-amber-600 bg-amber-50 rounded-lg border border-amber-100 mt-2">
-                            <p className="font-bold mb-1">No Equipment Found</p>
-                            <p className="opacity-80">Check Firestore Rules and create the <strong>collectionGroup</strong> index.</p>
+                            <p className="font-bold mb-1 flex items-center gap-2">
+                              <PackageSearch className="h-3.5 w-3.5" /> Database Empty
+                            </p>
+                            <p className="opacity-80">No equipment items found in Firestore. If you just updated rules, please wait for Vercel to sync or add equipment via Admin.</p>
                           </div>
                         );
                       }
 
-                      if (categories.length === 0) {
-                        return (
-                          <div className="px-3 py-2 text-xs text-gray-400 italic">
-                            No categories found for this laboratory.
-                          </div>
-                        );
-                      }
-
-                      return categories.map((feature, idx) => {
-                        const isActive = selectedEquipCategory === feature;
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => setSelectedEquipCategory(feature)}
-                            className={`text-left px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-                              ? "text-blue-700 bg-blue-50/80 shadow-sm translate-x-1"
-                              : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                              }`}
-                          >
-                            {feature}
-                          </button>
-                        );
-                      });
+                      return (
+                        <>
+                          {showAllFallback && (
+                            <p className="px-3 pb-2 text-[10px] text-amber-500 font-medium italic leading-tight">
+                              No items found in this lab specifically. Showing all available instrumentation:
+                            </p>
+                          )}
+                          {categories.map((feature, idx) => {
+                            const isActive = selectedEquipCategory === feature;
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => setSelectedEquipCategory(feature)}
+                                className={`text-left px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
+                                  ? "text-blue-700 bg-blue-50/80 shadow-sm translate-x-1"
+                                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                                  }`}
+                              >
+                                {feature}
+                              </button>
+                            );
+                          })}
+                        </>
+                      );
                     })()}
                   </nav>
                 </div>
