@@ -6,7 +6,7 @@ import {
     clearAllCollections,
 } from "./firestoreService";
 import { db } from "../../firebase";
-import { setDoc, doc } from "firebase/firestore";
+import { setDoc, doc, getDoc } from "firebase/firestore";
 import type { Equipment, Facility, Booking, AppUser } from "../context/AppContext";
 
 const labData: Record<string, any> = {
@@ -106,6 +106,59 @@ const seedUsers: AppUser[] = [
     { id: "2", firstName: "James", lastName: "Wright", email: "j.wright@stanford.edu", department: "Materials Science", institution: "Stanford University", role: "Professor", phone: "+1-650-555-0202", idProof: "STAN-EMP-0092", status: "Active", joinedAt: "2025-10-01" },
 ];
 
+export async function ensureDefaultData(): Promise<void> {
+    console.log("Syncing default laboratory and equipment data...");
+    try {
+        for (const [catId, data] of Object.entries(labData)) {
+            // 1. Ensure Facility exists
+            const facRef = doc(db, "facilities", data.id);
+            const facSnap = await getDoc(facRef);
+
+            const facData: Facility = {
+                id: data.id,
+                facilityName: data.facilityName,
+                facilityCategory: catId,
+                availabilityStatus: facSnap.exists() ? facSnap.data().availabilityStatus : "Available",
+                capacity: 25,
+                roomLocation: data.roomLocation,
+                spaceDescription: data.spaceDescription,
+                keyFacilityFeatures: Object.keys(data.categories),
+                createdAt: facSnap.exists() ? facSnap.data().createdAt : new Date().toISOString(),
+                image: data.image
+            };
+            await setDoc(facRef, facData, { merge: true });
+
+            // 2. Ensure Categories and Equipment exist
+            for (const [eqCatName, eqNames] of Object.entries(data.categories)) {
+                // Ensure category name doc exists
+                await setDoc(doc(db, "facilityCategories", catId, "equipmentCategories", eqCatName), { name: eqCatName }, { merge: true });
+
+                for (const [index, name] of (eqNames as string[]).entries()) {
+                    const eqId = `e_${data.id}_${index}`; // Deterministic ID for syncing
+                    const eqRef = doc(db, "facilities", data.id, "equipment", eqId);
+
+                    await setDoc(eqRef, {
+                        id: eqId,
+                        equipmentName: name,
+                        equipmentCategory: eqCatName,
+                        initialStatus: "Available",
+                        manufacturer: "Premium Laboratory Supplier",
+                        modelNumber: `RD-${1000 + index}`,
+                        instrumentDescription: `High-precision ${name} designed for advanced research and developmental applications in ${data.facilityName}.`,
+                        technicalSpecifications: ["Unit calibrated to ISO 9001 standards", "Automated precision control", "Real-time data logging enabled"],
+                        researchApplications: ["Advanced Academic Research", "Industrial Prototype Development", "Scientific Analysis"],
+                        facilityId: data.id
+                    }, { merge: true });
+                }
+            }
+        }
+        console.log("✅ Data synchronization complete!");
+    } catch (error) {
+        console.error("❌ Sync failed:", error);
+        throw error;
+    }
+}
+
 export async function seedAllCollections(): Promise<void> {
     console.log("🔥 Clearing and Seeding Firestore with Comprehensive Lab Data...");
 
@@ -113,54 +166,8 @@ export async function seedAllCollections(): Promise<void> {
         await clearAllCollections();
         console.log("✅ Cleared all collections");
 
-        const facilities: Facility[] = [];
-        const equipments: Equipment[] = [];
-        let eqCounter = 1;
-
-        // Process Lab Data
-        for (const [catId, data] of Object.entries(labData)) {
-            // Create Facility
-            const fac: Facility = {
-                id: data.id,
-                facilityName: data.facilityName,
-                facilityCategory: catId,
-                availabilityStatus: "Available",
-                capacity: 25,
-                roomLocation: data.roomLocation,
-                spaceDescription: data.spaceDescription,
-                keyFacilityFeatures: Object.keys(data.categories),
-                createdAt: new Date().toISOString(),
-                image: data.image
-            };
-            facilities.push(fac);
-
-            // Create Equipment
-            for (const [eqCatName, eqNames] of Object.entries(data.categories)) {
-                // Seed category in Firestore
-                await setDoc(doc(db, "facilityCategories", catId, "equipmentCategories", eqCatName), { name: eqCatName });
-
-                for (const name of (eqNames as string[])) {
-                    equipments.push({
-                        id: `e${eqCounter++}`,
-                        equipmentName: name,
-                        equipmentCategory: eqCatName,
-                        initialStatus: "Available",
-                        manufacturer: "Premium Laboratory Supplier",
-                        modelNumber: `RD-${Math.floor(Math.random() * 9000) + 1000}`,
-                        instrumentDescription: `High-precision ${name} designed for advanced research and developmental applications in ${data.facilityName}.`,
-                        technicalSpecifications: ["Unit calibrated to ISO 9001 standards", "Automated precision control", "Real-time data logging enabled"],
-                        researchApplications: ["Advanced Academic Research", "Industrial Prototype Development", "Scientific Analysis"],
-                        facilityId: data.id
-                    });
-                }
-            }
-        }
-
-        console.log(`  → Seeding ${facilities.length} facilities...`);
-        for (const f of facilities) await addFacilityDoc(f);
-
-        console.log(`  → Seeding ${equipments.length} equipment items...`);
-        for (const e of equipments) await addEquipmentDoc(e.facilityId, e);
+        // Just call ensureDefaultData after clearing for the full reset
+        await ensureDefaultData();
 
         console.log("  → Seeding bookings...");
         for (const bk of seedBookings) await addBookingDoc(bk);
@@ -168,7 +175,7 @@ export async function seedAllCollections(): Promise<void> {
         console.log("  → Seeding users...");
         for (const usr of seedUsers) await addUserDoc(usr);
 
-        console.log("✅ Firestore seeding complete!");
+        console.log("✅ Firestore full reset complete!");
     } catch (error) {
         console.error("❌ Seeding failed:", error);
         throw error;

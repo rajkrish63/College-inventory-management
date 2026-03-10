@@ -566,7 +566,7 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
                     </div>
                   )}
 
-                  {/* Associated Equipment grouped by Category */}
+                  {/* Associated Equipment grouped by Category - Matching Reference Image */}
                   {(() => {
                     const associated = equipment.filter(e => e.facilityId === f.id);
                     if (associated.length === 0) return null;
@@ -578,15 +578,19 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
                     }, {} as Record<string, Equipment[]>);
 
                     return (
-                      <div className="mt-4 pt-3 border-t border-gray-100/60 space-y-2">
-                        <p className="text-xs font-bold uppercase text-gray-400 tracking-wider">Associated Equipment</p>
-                        <div className="space-y-2">
+                      <div className="mt-6 pt-5 border-t border-slate-100 space-y-4">
+                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-[0.1em]">Associated Equipment</p>
+                        <div className="space-y-4">
                           {Object.entries(grouped).map(([cat, eqs]) => (
-                            <div key={cat} className="space-y-1">
-                              <p className="text-xs font-semibold text-blue-500/80 leading-none">{cat}</p>
-                              <div className="flex flex-wrap gap-1 mt-1.5">
+                            <div key={cat} className="space-y-2">
+                              <p className="text-[11px] font-bold text-blue-600/90 tracking-tight">{cat}</p>
+                              <div className="flex flex-wrap gap-2">
                                 {eqs.map(eq => (
-                                  <Badge key={eq.id} variant="outline" className="text-xs bg-white border-blue-100 text-slate-600 h-6 px-2 font-medium">
+                                  <Badge
+                                    key={eq.id}
+                                    variant="outline"
+                                    className="text-[10px] bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:text-blue-600 transition-colors py-0.5 px-2 font-medium shadow-sm"
+                                  >
                                     {eq.equipmentName}
                                   </Badge>
                                 ))}

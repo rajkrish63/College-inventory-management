@@ -91,6 +91,7 @@ export interface AppUser {
   joinedAt: string;
   profilePic?: string;
   researchInterests?: string[];
+  idProof?: string;
 }
 
 export interface AuthUser {
@@ -191,14 +192,40 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     );
 
     // 2. Equipment via collectionGroup (real-time)
-    unsubs.push(
-      onSnapshot(collectionGroup(db, "equipment"), (snap) => {
+    //    Falls back to per-facility subcollection queries if collectionGroup index is missing
+    const equipUnsub = onSnapshot(
+      collectionGroup(db, "equipment"),
+      (snap) => {
         const fsEquip = snap.docs.map(d => mapEquipment(d.id, d.data()));
         setEquipment(fsEquip);
         if (fsEquip.length > 0)
           setNextEquipId(Math.max(...fsEquip.map(e => parseInt(e.id) || 0)) + 1);
-      }, (err) => console.warn("Equipment listener error:", err))
+      },
+      async (err) => {
+        // collectionGroup failed (likely missing Firestore index for guests).
+        // Fall back: fetch equipment from each facility's subcollection directly.
+        console.warn("Equipment collectionGroup failed, using per-facility fallback:", err.message);
+        try {
+          const facilitiesSnap = await import("firebase/firestore").then(({ getDocs, collection }) =>
+            getDocs(collection(db, "facilities"))
+          );
+          const allEquip: Equipment[] = [];
+          await Promise.all(
+            facilitiesSnap.docs.map(async (fDoc) => {
+              const { getDocs, collection } = await import("firebase/firestore");
+              const eSnap = await getDocs(collection(db, "facilities", fDoc.id, "equipment"));
+              eSnap.docs.forEach(d => allEquip.push(mapEquipment(d.id, d.data())));
+            })
+          );
+          setEquipment(allEquip);
+          if (allEquip.length > 0)
+            setNextEquipId(Math.max(...allEquip.map(e => parseInt(e.id) || 0)) + 1);
+        } catch (fallbackErr) {
+          console.error("Equipment fallback fetch also failed:", fallbackErr);
+        }
+      }
     );
+    unsubs.push(equipUnsub);
 
     // 3. Bookings (real-time) — admin sees new bookings instantly
     unsubs.push(

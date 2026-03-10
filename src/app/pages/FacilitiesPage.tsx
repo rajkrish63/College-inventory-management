@@ -25,7 +25,6 @@ export function FacilitiesPage() {
   const rawData = location.state?.data;
   const passedData = (rawData === "all" || rawData === "All") ? null : rawData;
 
-  // Initialize with passedData if it exists and matches a category, otherwise "All"
   const defaultCategory = passedData && allCategories.some(c => c.toLowerCase() === passedData.toLowerCase())
     ? allCategories.find(c => c.toLowerCase() === passedData.toLowerCase()) || "All"
     : "All";
@@ -33,13 +32,11 @@ export function FacilitiesPage() {
   const [activeCategory, setActiveCategory] = useState(defaultCategory);
   const [selectedEquipCategory, setSelectedEquipCategory] = useState<string | null>(null);
 
-  // If the user clicks the link again while already on the page, update the category
   useEffect(() => {
     const target = passedData || "All";
     const match = allCategories.find(c => c.toLowerCase() === target.toLowerCase());
     if (match) {
       setActiveCategory(match);
-      // Reset equipment category when switching facilities
       setSelectedEquipCategory(null);
     }
   }, [passedData]);
@@ -48,13 +45,6 @@ export function FacilitiesPage() {
     ? facilities
     : facilities.filter((f) => f.facilityCategory === activeCategory);
 
-  // Initialize equipment category if on a specific facility page
-  useEffect(() => {
-    // We no longer auto-select the first equipment category here
-    // to allow the laboratory overview to show first as requested.
-  }, [passedData, filtered]);
-
-  // Dynamic header content mapping
   const headerContent: Record<string, { title: string, desc: string, icon: any, image: string }> = {
     "CHEMISTRY_LAB": {
       title: "Chemistry Research Laboratory",
@@ -95,21 +85,17 @@ export function FacilitiesPage() {
   };
 
   const currentHeader = headerContent[activeCategory];
+
   return (
     <div>
-      {/* Unified Header */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50">
-        {/* Background Image Container */}
         <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-20 mix-blend-multiply"
           style={{
             backgroundImage: currentHeader ? `url('${currentHeader.image}')` : "url('https://images.unsplash.com/photo-1563207153-f4087858c8ec?ixlib=rb-4.0.3&auto=format&fit=crop&w=1740&q=80')",
           }}
         />
-        {/* White overlay for extra readability */}
         <div className="absolute inset-0 bg-white/60 z-0 backdrop-blur-[2px]" />
-
-        {/* Content */}
         <div className="relative z-10 py-24 px-4 sm:px-6 lg:px-8 max-w-8xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 drop-shadow-sm">
             {currentHeader ? currentHeader.title : "Research Facilities"}
@@ -120,13 +106,9 @@ export function FacilitiesPage() {
         </div>
       </section>
 
-      {/* Facilities Grid & Lab Sidebar */}
       <section className="py-12 px-4 sm:px-6 lg:px-8 bg-white min-h-[600px]">
         <div className="max-w-8xl mx-auto">
-
-
           <div className="flex flex-col lg:flex-row gap-8">
-            {/* Internal Lab Sidebar (Equipment Categories) */}
             {filtered.length > 0 && (
               <aside className="w-full lg:w-64 shrink-0">
                 <div className="sticky top-24">
@@ -145,16 +127,10 @@ export function FacilitiesPage() {
                       Laboratory Overview
                     </button>
 
-                    <div className="mt-4 mb-2 px-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider flex justify-between items-center">
-                      <span>Equipment Categories</span>
-                      <span className="text-[9px] bg-slate-100 px-1 rounded">{equipment.length} items</span>
-                    </div>
-
                     {(() => {
                       const matchingFacilityIds = filtered.map(f => f.id);
                       const hasEquipmentInSystem = equipment.length > 0;
 
-                      // 1. Try filtered categories
                       let categories = Array.from(new Set(
                         equipment
                           .filter(e => activeCategory === "All" || matchingFacilityIds.includes(e.facilityId))
@@ -162,7 +138,6 @@ export function FacilitiesPage() {
                           .filter(Boolean)
                       ));
 
-                      // 2. Fallback: If specific lab category is empty, show all available categories as discovery
                       const showAllFallback = activeCategory !== "All" && categories.length === 0 && hasEquipmentInSystem;
                       if (showAllFallback) {
                         categories = Array.from(new Set(equipment.map(e => e.equipmentCategory).filter(Boolean)));
@@ -174,7 +149,7 @@ export function FacilitiesPage() {
                             <p className="font-bold mb-1 flex items-center gap-2">
                               <PackageSearch className="h-3.5 w-3.5" /> Database Empty
                             </p>
-                            <p className="opacity-80">No equipment items found in Firestore. If you just updated rules, please wait for Vercel to sync or add equipment via Admin.</p>
+                            <p className="opacity-80">No equipment items found in Firestore.</p>
                           </div>
                         );
                       }
@@ -209,9 +184,7 @@ export function FacilitiesPage() {
               </aside>
             )}
 
-            {/* Content Area */}
             <div className="flex-1">
-              {/* Equipment Detailed View (When a category is selected) */}
               {selectedEquipCategory ? (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
@@ -238,12 +211,12 @@ export function FacilitiesPage() {
                     {(() => {
                       const matchingFacilityIds = filtered.map(f => f.id);
                       return equipment
-                        .filter((e: any) =>
+                        .filter((e) =>
                           (activeCategory === "All" || matchingFacilityIds.includes(e.facilityId)) &&
                           (e.equipmentCategory.toLowerCase() === selectedEquipCategory.toLowerCase() ||
                             e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()))
                         )
-                        .map((item: any) => (
+                        .map((item) => (
                           <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
                             <CardHeader className="pb-2">
                               <div className="flex items-start justify-between gap-2">
@@ -284,7 +257,7 @@ export function FacilitiesPage() {
                               <div className="space-y-2">
                                 <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Key Specifications</h4>
                                 <div className="flex flex-wrap gap-1.5">
-                                  {(item.technicalSpecifications || []).map((spec: string, idx: number) => (
+                                  {(item.technicalSpecifications || []).map((spec, idx) => (
                                     <Badge key={idx} variant="outline" className="text-[10px] font-medium border-gray-200 text-gray-500">
                                       {spec}
                                     </Badge>
@@ -309,29 +282,8 @@ export function FacilitiesPage() {
                         ))
                     })()}
                   </div>
-
-                  {(() => {
-                    const matchingFacilityIds = filtered.map(f => f.id);
-                    const filteredEquip = equipment.filter((e: any) =>
-                      (activeCategory === "All" || matchingFacilityIds.includes(e.facilityId)) &&
-                      (e.equipmentCategory.toLowerCase() === selectedEquipCategory.toLowerCase() ||
-                        e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()))
-                    );
-
-                    if (filteredEquip.length === 0) {
-                      return (
-                        <div className="py-20 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
-                          <Monitor className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                          <h4 className="text-gray-500 font-medium">No specialized data available for {selectedEquipCategory} yet.</h4>
-                          <p className="text-gray-400 text-sm">Please select another category or check back later.</p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
                 </div>
               ) : (
-                /* Facility Grid (Default View) */
                 <div className={`grid gap-6 ${activeCategory !== "All" ? "grid-cols-1 max-w-2xl" : "md:grid-cols-2 lg:grid-cols-3"}`}>
                   {filtered.map((facility) => (
                     <Card key={facility.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
@@ -385,16 +337,6 @@ export function FacilitiesPage() {
                       </CardFooter>
                     </Card>
                   ))}
-                </div>
-              )}
-
-              {filtered.length === 0 && (
-                <div className="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 text-gray-400 mb-4">
-                    <Microscope className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900">No facilities found</h3>
-                  <p className="text-gray-500 max-w-xs mx-auto mt-1">We couldn't find any facilities in the {categoryDisplayMap[activeCategory] || activeCategory} category.</p>
                 </div>
               )}
             </div>
