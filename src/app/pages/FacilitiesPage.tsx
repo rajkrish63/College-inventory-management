@@ -145,30 +145,53 @@ export function FacilitiesPage() {
                       Laboratory Overview
                     </button>
 
-                    <div className="mt-4 mb-2 px-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      Equipment Categories
+                    <div className="mt-4 mb-2 px-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider flex justify-between items-center">
+                      <span>Equipment Categories</span>
+                      <span className="text-[9px] bg-slate-100 px-1 rounded">{equipment.length} items</span>
                     </div>
 
-                    {Array.from(new Set(
-                      equipment
-                        .filter(e => activeCategory === "All" || e.facilityId === filtered[0]?.id)
-                        .map(e => e.equipmentCategory)
-                        .filter(Boolean)
-                    )).map((feature, idx) => {
-                      const isActive = selectedEquipCategory === feature;
-                      return (
-                        <button
-                          key={idx}
-                          onClick={() => setSelectedEquipCategory(feature)}
-                          className={`text-left px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-                            ? "text-blue-700 bg-blue-50/80 shadow-sm translate-x-1"
-                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                            }`}
-                        >
-                          {feature}
-                        </button>
-                      );
-                    })}
+                    {(() => {
+                      const matchingFacilityIds = filtered.map(f => f.id);
+                      const categories = Array.from(new Set(
+                        equipment
+                          .filter(e => activeCategory === "All" || matchingFacilityIds.includes(e.facilityId))
+                          .map(e => e.equipmentCategory)
+                          .filter(Boolean)
+                      ));
+
+                      if (equipment.length === 0) {
+                        return (
+                          <div className="px-3 py-4 text-xs text-amber-600 bg-amber-50 rounded-lg border border-amber-100 mt-2">
+                            <p className="font-bold mb-1">No Equipment Found</p>
+                            <p className="opacity-80">Check Firestore Rules and create the <strong>collectionGroup</strong> index.</p>
+                          </div>
+                        );
+                      }
+
+                      if (categories.length === 0) {
+                        return (
+                          <div className="px-3 py-2 text-xs text-gray-400 italic">
+                            No categories found for this laboratory.
+                          </div>
+                        );
+                      }
+
+                      return categories.map((feature, idx) => {
+                        const isActive = selectedEquipCategory === feature;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => setSelectedEquipCategory(feature)}
+                            className={`text-left px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
+                              ? "text-blue-700 bg-blue-50/80 shadow-sm translate-x-1"
+                              : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                              }`}
+                          >
+                            {feature}
+                          </button>
+                        );
+                      });
+                    })()}
                   </nav>
                 </div>
               </aside>
