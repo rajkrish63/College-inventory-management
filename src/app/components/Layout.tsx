@@ -58,6 +58,7 @@ export function Layout() {
               <div className="flex flex-col gap-1">
                 {[
                   { name: "All Research Areas", icon: LayoutGrid, path: "/facilities/", state: { data: "All" } },
+                  { name: "Equipment Catalog", icon: FlaskConical, path: "/equipment" },
                   { name: "Chemistry Lab", icon: FlaskConical, path: "/facilities/", state: { data: "CHEMISTRY_LAB" } },
                   { name: "Biotech Lab", icon: Dna, path: "/facilities/", state: { data: "BIOMEDICAL_LAB" } },
                   { name: "EEE Lab", icon: Zap, path: "/facilities/", state: { data: "EEE_LAB" } },

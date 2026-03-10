@@ -125,9 +125,9 @@ export function FacilitiesPage() {
         <div className="max-w-8xl mx-auto">
 
 
-          <div className={`${passedData ? "flex flex-col lg:flex-row gap-8" : ""}`}>
+          <div className="flex flex-col lg:flex-row gap-8">
             {/* Internal Lab Sidebar (Equipment Categories) */}
-            {passedData && filtered.length > 0 && (
+            {filtered.length > 0 && (
               <aside className="w-full lg:w-64 shrink-0">
                 <div className="sticky top-24">
                   <h3 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest mb-4 border-b pb-2">
@@ -151,7 +151,7 @@ export function FacilitiesPage() {
 
                     {Array.from(new Set(
                       equipment
-                        .filter(e => e.facilityId === filtered[0].id)
+                        .filter(e => activeCategory === "All" || e.facilityId === filtered[0]?.id)
                         .map(e => e.equipmentCategory)
                         .filter(Boolean)
                     )).map((feature, idx) => {
@@ -177,7 +177,7 @@ export function FacilitiesPage() {
             {/* Content Area */}
             <div className="flex-1">
               {/* Equipment Detailed View (When a category is selected) */}
-              {passedData && selectedEquipCategory ? (
+              {selectedEquipCategory ? (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -202,9 +202,9 @@ export function FacilitiesPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-8 max-w-4xl">
                     {equipment
                       .filter((e: any) =>
-                        e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
-                        e.equipmentCategory.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
-                        selectedEquipCategory.toLowerCase().includes(e.modelNumber.toLowerCase().split(' ')[0])
+                        (activeCategory === "All" || e.facilityId === filtered[0]?.id) &&
+                        (e.equipmentCategory.toLowerCase() === selectedEquipCategory.toLowerCase() ||
+                          e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()))
                       )
                       .map((item: any) => (
                         <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
@@ -236,7 +236,12 @@ export function FacilitiesPage() {
                                 <span className="text-gray-500">Model:</span>
                                 <span className="font-medium text-gray-900">{item.modelNumber}</span>
                               </div>
-                              {/* Location removed from equipment doc, could be derived from facility */}
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-500">Facility:</span>
+                                <span className="font-medium text-gray-900 text-right">
+                                  {facilities.find(f => f.id === item.facilityId)?.facilityName || "Research Hub"}
+                                </span>
+                              </div>
                             </div>
 
                             <div className="space-y-2">
@@ -267,7 +272,7 @@ export function FacilitiesPage() {
                               <Link to="/booking" state={{
                                 equipment: item.equipmentName,
                                 equipCategory: item.equipmentCategory,
-                                equipFacility: passedData?.facilityName ?? "",
+                                equipFacility: facilities.find(f => f.id === item.facilityId)?.facilityName ?? "",
                                 type: "equipment",
                               }}>
                                 {item.initialStatus === "Maintenance" ? "Under Maintenance" : "Reserve This Equipment"}
@@ -279,8 +284,9 @@ export function FacilitiesPage() {
                   </div>
 
                   {equipment.filter((e: any) =>
-                    e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()) ||
-                    e.equipmentCategory.toLowerCase().includes(selectedEquipCategory.toLowerCase())
+                    (activeCategory === "All" || e.facilityId === filtered[0]?.id) &&
+                    (e.equipmentCategory.toLowerCase() === selectedEquipCategory.toLowerCase() ||
+                      e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()))
                   ).length === 0 && (
                       <div className="py-20 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
                         <Monitor className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -291,7 +297,7 @@ export function FacilitiesPage() {
                 </div>
               ) : (
                 /* Facility Grid (Default View) */
-                <div className={`grid gap-6 ${passedData ? "grid-cols-1 max-w-2xl" : "md:grid-cols-2 lg:grid-cols-3"}`}>
+                <div className={`grid gap-6 ${activeCategory !== "All" ? "grid-cols-1 max-w-2xl" : "md:grid-cols-2 lg:grid-cols-3"}`}>
                   {filtered.map((facility) => (
                     <Card key={facility.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
                       <div className="relative h-56 overflow-hidden">

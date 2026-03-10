@@ -5,7 +5,7 @@ service cloud.firestore {
     match /facilities/{doc=**} {
       allow read: if true;
     }
-    match /equipment/{doc=**} {
+    match /{path=**}/equipment/{doc} {
       allow read: if true;
     }
 
