@@ -235,100 +235,100 @@ export function FacilitiesPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-8 max-w-4xl">
-                    {equipment
-                      .filter((e: any) =>
-                        (activeCategory === "All" || e.facilityId === filtered[0]?.id) &&
-                        (e.equipmentCategory.toLowerCase() === selectedEquipCategory.toLowerCase() ||
-                          e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()))
-                      )
-                      .map((item: any) => (
-                        <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
-                          <CardHeader className="pb-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <CardTitle className="text-xl font-bold text-gray-900">{item.equipmentName}</CardTitle>
-                              <Badge
-                                className={`${item.initialStatus === "Available" ? "bg-emerald-500" :
-                                  item.initialStatus === "In Use" ? "bg-blue-500" : "bg-rose-500"
-                                  } text-white border-0 shadow-sm`}
-                              >
-                                {item.initialStatus}
+                    {(() => {
+                      const matchingFacilityIds = filtered.map(f => f.id);
+                      return equipment
+                        .filter((e: any) =>
+                          (activeCategory === "All" || matchingFacilityIds.includes(e.facilityId)) &&
+                          (e.equipmentCategory.toLowerCase() === selectedEquipCategory.toLowerCase() ||
+                            e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()))
+                        )
+                        .map((item: any) => (
+                          <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow border-gray-200">
+                            <CardHeader className="pb-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <CardTitle className="text-xl font-bold text-gray-900">{item.equipmentName}</CardTitle>
+                                <Badge
+                                  className={`${item.initialStatus === "Available" ? "bg-emerald-500" :
+                                    item.initialStatus === "In Use" ? "bg-blue-500" : "bg-rose-500"
+                                    } text-white border-0 shadow-sm`}
+                                >
+                                  {item.initialStatus}
+                                </Badge>
+                              </div>
+                              <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-0 w-fit">
+                                {item.equipmentCategory}
                               </Badge>
-                            </div>
-                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-0 w-fit">
-                              {item.equipmentCategory}
-                            </Badge>
-                            <CardDescription className="text-gray-600 leading-relaxed mt-2 text-sm">
-                              {item.instrumentDescription}
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            <div className="space-y-2 py-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-500">Manufacturer:</span>
-                                <span className="font-medium text-gray-900">{item.manufacturer}</span>
+                              <CardDescription className="text-gray-600 leading-relaxed mt-2 text-sm">
+                                {item.instrumentDescription}
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="space-y-2 py-2">
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-500">Manufacturer:</span>
+                                  <span className="font-medium text-gray-900">{item.manufacturer}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-500">Model:</span>
+                                  <span className="font-medium text-gray-900">{item.modelNumber}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                  <span className="text-gray-500">Facility:</span>
+                                  <span className="font-medium text-gray-900 text-right">
+                                    {facilities.find(f => f.id === item.facilityId)?.facilityName || "Research Hub"}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-500">Model:</span>
-                                <span className="font-medium text-gray-900">{item.modelNumber}</span>
-                              </div>
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-500">Facility:</span>
-                                <span className="font-medium text-gray-900 text-right">
-                                  {facilities.find(f => f.id === item.facilityId)?.facilityName || "Research Hub"}
-                                </span>
-                              </div>
-                            </div>
 
-                            <div className="space-y-2">
-                              <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Key Specifications</h4>
-                              <div className="flex flex-wrap gap-1.5">
-                                {(item.technicalSpecifications || []).map((spec: string, idx: number) => (
-                                  <Badge key={idx} variant="outline" className="text-[10px] font-medium border-gray-200 text-gray-500">
-                                    {spec}
-                                  </Badge>
-                                ))}
+                              <div className="space-y-2">
+                                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Key Specifications</h4>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {(item.technicalSpecifications || []).map((spec: string, idx: number) => (
+                                    <Badge key={idx} variant="outline" className="text-[10px] font-medium border-gray-200 text-gray-500">
+                                      {spec}
+                                    </Badge>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Applications</h4>
-                              <div className="flex flex-wrap gap-1.5">
-                                {(item.researchApplications || []).map((app: string, idx: number) => (
-                                  <Badge key={idx} variant="outline" className="text-[10px] font-medium border-gray-200 text-gray-500">
-                                    {app}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          </CardContent>
-                          <CardFooter className="pt-2">
-                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm" asChild
-                              disabled={item.initialStatus === "Maintenance"}>
-                              <Link to="/booking" state={{
-                                equipment: item.equipmentName,
-                                equipCategory: item.equipmentCategory,
-                                equipFacility: facilities.find(f => f.id === item.facilityId)?.facilityName ?? "",
-                                type: "equipment",
-                              }}>
-                                {item.initialStatus === "Maintenance" ? "Under Maintenance" : "Reserve This Equipment"}
-                              </Link>
-                            </Button>
-                          </CardFooter>
-                        </Card>
-                      ))}
+                            </CardContent>
+                            <CardFooter className="pt-2">
+                              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm" asChild
+                                disabled={item.initialStatus === "Maintenance"}>
+                                <Link to="/booking" state={{
+                                  equipment: item.equipmentName,
+                                  equipCategory: item.equipmentCategory,
+                                  equipFacility: facilities.find(f => f.id === item.facilityId)?.facilityName ?? "",
+                                  type: "equipment",
+                                }}>
+                                  {item.initialStatus === "Maintenance" ? "Under Maintenance" : "Reserve This Equipment"}
+                                </Link>
+                              </Button>
+                            </CardFooter>
+                          </Card>
+                        ))
+                    })()}
                   </div>
 
-                  {equipment.filter((e: any) =>
-                    (activeCategory === "All" || e.facilityId === filtered[0]?.id) &&
-                    (e.equipmentCategory.toLowerCase() === selectedEquipCategory.toLowerCase() ||
-                      e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()))
-                  ).length === 0 && (
-                      <div className="py-20 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
-                        <Monitor className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <h4 className="text-gray-500 font-medium">No specialized data available for {selectedEquipCategory} yet.</h4>
-                        <p className="text-gray-400 text-sm">Please select another category or check back later.</p>
-                      </div>
-                    )}
+                  {(() => {
+                    const matchingFacilityIds = filtered.map(f => f.id);
+                    const filteredEquip = equipment.filter((e: any) =>
+                      (activeCategory === "All" || matchingFacilityIds.includes(e.facilityId)) &&
+                      (e.equipmentCategory.toLowerCase() === selectedEquipCategory.toLowerCase() ||
+                        e.equipmentName.toLowerCase().includes(selectedEquipCategory.toLowerCase()))
+                    );
+
+                    if (filteredEquip.length === 0) {
+                      return (
+                        <div className="py-20 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
+                          <Monitor className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <h4 className="text-gray-500 font-medium">No specialized data available for {selectedEquipCategory} yet.</h4>
+                          <p className="text-gray-400 text-sm">Please select another category or check back later.</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               ) : (
                 /* Facility Grid (Default View) */
