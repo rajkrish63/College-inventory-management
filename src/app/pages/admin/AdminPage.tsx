@@ -1,0 +1,852 @@
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router";
+import { Navbar } from "../../components/Navbar";
+import { Sidebar } from "../../components/Sidebar";
+import {
+  LayoutDashboard, CalendarCheck, FlaskConical, Building2, Users,
+  PackagePlus, PlusCircle, CheckCircle, XCircle, Clock, Trash2,
+  Search, Shield, Activity, ChevronRight, LogOut, ToggleLeft, ToggleRight, Filter,
+  LucideIcon, Settings, User, PencilLine, Package
+} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Input } from "../../components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "../../components/ui/select";
+import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
+import { Label } from "../../components/ui/label";
+import { useAppContext } from "../../context/AppContext";
+import type { Booking, Equipment, Facility, AppUser } from "../../context/AppContext";
+import { LogoutModal } from "../../components/LogoutModal";
+import { Modal } from "../../components/Modal";
+import { seedAllCollections, ensureDefaultData } from "../../services/seedFirestore";
+import emailjs from '@emailjs/browser';
+
+import { SettingsContent } from "../SettingsPage";
+
+
+type Section = "dashboard" | "bookings" | "equipment" | "facilities" | "users" | "settings";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function StatusPill({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    Pending: "bg-amber-100 text-amber-800 border-amber-200",
+    Approved: "bg-green-100 text-green-800 border-green-200",
+    Rejected: "bg-red-100 text-red-800 border-red-200",
+    Available: "bg-green-100 text-green-800 border-green-200",
+    "In Use": "bg-orange-100 text-orange-800 border-orange-200",
+    Maintenance: "bg-red-100 text-red-800 border-red-200",
+    Active: "bg-green-100 text-green-800 border-green-200",
+    Inactive: "bg-gray-100 text-gray-600 border-gray-200",
+    Limited: "bg-amber-100 text-amber-800 border-amber-200",
+    Unavailable: "bg-red-100 text-red-800 border-red-200",
+  };
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${map[status] ?? "bg-gray-100 text-gray-800"}`}>
+      {status}
+    </span>
+  );
+}
+
+function StatCard({ label, value, sub, icon: Icon, color }: { label: string; value: string | number; sub: string; icon: React.ElementType; color: string }) {
+  return (
+    <Card>
+      <CardContent className="pt-5 pb-5">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm text-gray-500 mb-1">{label}</p>
+            <p className="text-3xl font-bold text-gray-900">{value}</p>
+            <p className="text-xs text-gray-400 mt-1">{sub}</p>
+          </div>
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
+            <Icon className="h-6 w-6 text-white" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function DashboardSection({ setSection }: { setSection: (s: Section) => void }) {
+  const { equipment, facilities, bookings, users, seedingStatus } = useAppContext();
+  const [syncStatus, setSyncStatus] = useState("");
+  const pending = bookings.filter((b) => b.status === "Pending").length;
+  const approved = bookings.filter((b) => b.status === "Approved").length;
+  const available = equipment.filter((e) => e.initialStatus === "Available").length;
+  const activeUsers = users.filter((u) => u.status === "Active").length;
+  const recent = [...bookings].sort((a, b) => (b.submittedAt || "").localeCompare(a.submittedAt || "")).slice(0, 5);
+
+  const handleSyncLabData = async () => {
+    setSyncStatus("syncing");
+    try {
+      await ensureDefaultData();
+      setSyncStatus("success");
+      setTimeout(() => setSyncStatus(""), 4000);
+    } catch (err) {
+      console.error("Sync failed:", err);
+      setSyncStatus("error");
+      setTimeout(() => setSyncStatus(""), 4000);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Seeding Status / Auto-load Feedback */}
+      {seedingStatus && (
+        <div className={`rounded-xl px-4 py-3 text-sm font-bold flex items-center gap-3 animate-pulse shadow-sm ${seedingStatus.startsWith("✅") ? "bg-green-50 text-green-700 border border-green-200" : seedingStatus.startsWith("❌") ? "bg-red-50 text-red-700 border border-red-200" : "bg-blue-50 text-blue-700 border border-blue-200"}`}>
+          {seedingStatus.startsWith("Loading") && <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />}
+          {seedingStatus}
+        </div>
+      )}
+      {/* Stats */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard label="Total Bookings" value={bookings.length} sub={`${approved} approved`} icon={CalendarCheck} color="bg-blue-500" />
+        <StatCard label="Pending Approvals" value={pending} sub="awaiting review" icon={Clock} color="bg-amber-500" />
+        <StatCard label="Equipment Units" value={equipment.length} sub={`${available} available`} icon={FlaskConical} color="bg-green-500" />
+        <StatCard label="Facilities" value={facilities.length} sub="Research Laboratories" icon={Building2} color="bg-purple-500" />
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Recent Bookings */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle>Recent Booking Requests</CardTitle>
+                <CardDescription>Latest 5 access requests</CardDescription>
+              </div>
+              {pending > 0 && (
+                <Badge className="bg-amber-100 text-amber-800 border border-amber-200">{pending} pending</Badge>
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {recent.map((b) => (
+                  <div key={b.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm text-gray-900 truncate">{b.name}</p>
+                        <StatusPill status={b.status} />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                        {b.type === "facility" ? b.facility : b.type === "equipment" ? b.equipment : "Facility + Equipment"}
+                        {" · "}{b.date}
+                      </p>
+                    </div>
+                    <span className="text-xs text-gray-400 ml-3 flex-shrink-0 font-mono">{b.id}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Button variant="outline" size="sm" className="w-full" onClick={() => setSection("bookings")}>
+                  View All Bookings
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="space-y-4">
+          <Card className="gap-0">
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Resource Overview</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              <p className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Facilities</p>
+              {[
+                { label: "Available", count: facilities.filter((f) => f.availabilityStatus === "Available").length, color: "bg-green-500" },
+                { label: "Limited", count: facilities.filter((f) => f.availabilityStatus === "Limited").length, color: "bg-amber-500" },
+                { label: "Unavailable", count: facilities.filter((f) => f.availabilityStatus === "Unavailable").length, color: "bg-red-500" },
+              ].map((item) => (
+                <div key={`fac-${item.label}`} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                    <span className="text-sm text-gray-600">{item.label}</span>
+                  </div>
+                  <span className="font-semibold text-sm">{item.count}</span>
+                </div>
+              ))}
+              <p className="text-[10px] font-bold uppercase text-gray-400 tracking-wider pt-2 border-t">Equipment</p>
+              {[
+                { label: "Available", count: equipment.filter((e) => e.initialStatus === "Available").length, color: "bg-green-500" },
+                { label: "In Use", count: equipment.filter((e) => e.initialStatus === "In Use").length, color: "bg-orange-500" },
+                { label: "Maintenance", count: equipment.filter((e) => e.initialStatus === "Maintenance").length, color: "bg-red-500" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                    <span className="text-sm text-gray-600">{item.label}</span>
+                  </div>
+                  <span className="font-semibold text-sm">{item.count}</span>
+                </div>
+              ))}
+              <div className="pt-2 border-t space-y-2">
+                <Button size="sm" variant="outline" className="w-full" asChild>
+                  <Link to="/admin/add-facility"><PlusCircle className="h-3.5 w-3.5 mr-1.5" />Add Resources</Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className={`w-full text-xs ${
+                    syncStatus === "success"
+                      ? "text-green-700 border-green-300 bg-green-50"
+                      : syncStatus === "error"
+                      ? "text-red-700 border-red-300 bg-red-50"
+                      : "text-blue-600 border-blue-200 bg-blue-50/50 hover:bg-blue-50"
+                  }`}
+                  onClick={handleSyncLabData}
+                  disabled={syncStatus === "syncing"}
+                >
+                  {syncStatus === "syncing" ? (
+                    <><div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-1.5" />Syncing...</>
+                  ) : syncStatus === "success" ? (
+                    <>✅ Lab Data Synced!</>
+                  ) : syncStatus === "error" ? (
+                    <>❌ Sync Failed</>
+                  ) : (
+                    <>🔄 Sync Lab Data to Firebase</>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+
+    </div>
+  );
+}
+
+// ── Bookings ──────────────────────────────────────────────────────────────────
+function BookingsSection() {
+  const { bookings, users, updateBookingStatus } = useAppContext();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+
+  // Confirmation state
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean, bookingId: string | null, action: "Approved" | "Rejected" | null }>({
+    open: false,
+    bookingId: null,
+    action: null
+  });
+
+  const handleConfirmAction = () => {
+    if (confirmModal.bookingId && confirmModal.action) {
+      updateBookingStatus(confirmModal.bookingId, confirmModal.action);
+    }
+    setConfirmModal({ open: false, bookingId: null, action: null });
+  };
+
+  const filtered = bookings.filter((b) => {
+    const q = search.toLowerCase();
+    return ((b.name || "").toLowerCase().includes(q) || (b.id || "").toLowerCase().includes(q) || (b.email || "").toLowerCase().includes(q))
+      && (statusFilter === "All" || b.status === statusFilter);
+  }).sort((a, b) => (a.submittedAt || "").localeCompare(b.submittedAt || ""));
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">Booking Requests</h2>
+        <p className="text-sm text-gray-500">{bookings.length} total requests</p>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input placeholder="Search by name, ID or email..." className="pl-10"
+            value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <Filter className="h-4 w-4 mr-2 text-gray-400" /><SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All Status</SelectItem>
+            <SelectItem value="Pending">Pending</SelectItem>
+            <SelectItem value="Approved">Approved</SelectItem>
+            <SelectItem value="Rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto rounded-t-xl">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  {["Researcher", "Resource", "Date & Time", "Requested Date", "Status", "Actions"].map((h, i, arr) => (
+                    <th key={h} className={`${h === "Actions" ? "text-right pr-12" : "text-left"} py-3 px-4 font-medium text-gray-600 ${h === "Resource" ? "hidden md:table-cell" : h === "Date & Time" || h === "Requested Date" ? "hidden lg:table-cell" : ""} ${i === 0 ? "rounded-tl-xl" : ""} ${i === arr.length - 1 ? "rounded-tr-xl" : ""}`}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((b: Booking) => (
+                  <tr key={b.id} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      <p className="font-mono text-xs text-blue-600 font-bold mb-0.5">{b.id}</p>
+                      <p className="font-medium text-gray-900">{b.name}</p>
+                      <p className="text-xs text-gray-500 mb-1">{b.email}</p>
+                      {(() => {
+                        const user = users.find(u => u.email === b.email);
+                        if (user) {
+                          return (
+                            <div className="flex flex-col gap-0.5 mt-1 pt-1">
+                              <span className="text-[10px] text-gray-500 font-medium leading-tight">
+                                {user.institution} <span className="opacity-40 px-0.5">•</span> {user.department}
+                              </span>
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 uppercase tracking-wider bg-gray-50 text-gray-600 border-gray-200 w-fit mt-0.5">
+                                {user.role}
+                              </Badge>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </td>
+                    <td className="py-3 px-4 hidden md:table-cell">
+                      <p className="text-gray-700 text-xs max-w-40 truncate">
+                        {b.type === "facility" ? b.facility : b.type === "equipment" ? b.equipment : "Facility + Equipment"}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <p className="text-gray-400 text-xs capitalize">{b.type}</p>
+                        {b.type === 'facility' && b.persons && (
+                          <span className="text-blue-600 text-[10px] flex items-center bg-blue-50 px-1.5 py-0.5 rounded font-medium border border-blue-100">
+                            <Users className="w-3 h-3 mr-1" />
+                            {b.persons} {b.persons === 1 ? 'Person' : 'Persons'}
+                          </span>
+                        )}
+                        {b.type === 'equipment' && b.quantity && (
+                          <span className="text-indigo-600 text-[10px] flex items-center bg-indigo-50 px-1.5 py-0.5 rounded font-medium border border-indigo-100">
+                            <Package className="w-3 h-3 mr-1" />
+                            Qty: {b.quantity}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500">{b.date}<br />{b.timeSlot}</td>
+                    <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500">
+                      {new Date(b.submittedAt).toLocaleDateString()}
+                      <br />
+                      {!isNaN(new Date(b.submittedAt).getTime()) && b.submittedAt.includes('T') && new Date(b.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td className="py-3 px-4"><StatusPill status={b.status} /></td>
+                    <td className="py-3 px-4">
+                      <div className="flex justify-end pr-2">
+                        <div className="flex items-center gap-3 flex-wrap w-max">
+                          {(b.status === "Pending" || b.status === "Approved" || b.status === "Rejected") && (
+                            <>
+                              {b.status !== "Approved" && (
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-green-600 hover:bg-green-50 text-xs" onClick={() => setConfirmModal({ open: true, bookingId: b.id, action: "Approved" })}>
+                                  <CheckCircle className="h-3.5 w-3.5 mr-1" />Approve
+                                </Button>
+                              )}
+                              {b.status !== "Rejected" && (
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:bg-red-50 text-xs" onClick={() => setConfirmModal({ open: true, bookingId: b.id, action: "Rejected" })}>
+                                  <XCircle className="h-3.5 w-3.5 mr-1" />Reject
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length === 0 && (
+              <div className="text-center py-10 text-gray-400">
+                <CalendarCheck className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p>No bookings match your search</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Modal open={confirmModal.open} onOpenChange={(open) => setConfirmModal(prev => ({ ...prev, open }))} className="max-w-md">
+        <Modal.Header
+          title={`Confirm ${confirmModal.action === "Approved" ? "Approval" : "Rejection"}`}
+          subtitle={`Are you sure you want to ${confirmModal.action === "Approved" ? "approve" : "reject"} this booking request?`}
+          icon={confirmModal.action === "Approved" ? CheckCircle : XCircle}
+          onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+        />
+        <Modal.Content className="text-center py-4">
+          <p className="text-sm text-gray-600 mb-2">
+            You are about to <strong className={confirmModal.action === "Approved" ? "text-emerald-600" : "text-red-600"}>{confirmModal.action?.toLowerCase()}</strong> the request:
+          </p>
+          <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 inline-block">
+            <p className="font-mono text-xs font-bold text-gray-700">{confirmModal.bookingId}</p>
+          </div>
+        </Modal.Content>
+        <Modal.Footer className="flex-col sm:flex-row gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmAction}
+            className={`w-full sm:w-auto ${confirmModal.action === "Approved" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}`}
+          >
+            Confirm {confirmModal.action}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
+  );
+}
+
+// ── Equipment ─────────────────────────────────────────────────────────────────
+function EquipmentSection() {
+  const { equipment, facilities, updateEquipmentStatus, deleteEquipment } = useAppContext();
+  const [search, setSearch] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const filtered = equipment.filter((e) =>
+    (e.equipmentName || "").toLowerCase().includes(search.toLowerCase()) ||
+    (e.equipmentCategory || "").toLowerCase().includes(search.toLowerCase()) ||
+    (e.manufacturer || "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const cycleStatus = (e: Equipment) => {
+    const cycle: Equipment["initialStatus"][] = ["Available", "In Use", "Maintenance"];
+    updateEquipmentStatus(e.facilityId, e.id, cycle[(cycle.indexOf(e.initialStatus) + 1) % 3]);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Equipment Catalog</h2>
+          <p className="text-sm text-gray-500">{equipment.length} instruments registered</p>
+        </div>
+      </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input placeholder="Search equipment..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Name</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 hidden sm:table-cell">Category</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 hidden md:table-cell">Manufacturer / Model</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 hidden lg:table-cell">Location</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((e: Equipment) => (
+                  <tr key={e.id} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="py-3 px-4"><p className="font-medium text-gray-900 max-w-44 truncate">{e.equipmentName}</p></td>
+                    <td className="py-3 px-4 hidden sm:table-cell">
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">{e.equipmentCategory}</Badge>
+                    </td>
+                    <td className="py-3 px-4 hidden md:table-cell">
+                      <p className="text-gray-700">{e.manufacturer}</p>
+                      <p className="text-gray-400 text-xs">{e.modelNumber}</p>
+                    </td>
+                    <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500 max-w-36">
+                      <span className="truncate block text-slate-700 font-medium">
+                        {facilities.find(f => f.id === e.facilityId)?.facilityName || "Unknown Facility"}
+                      </span>
+                      <span className="truncate block text-[10px] italic">ID: {e.facilityId}</span>
+                    </td>
+                    <td className="py-3 px-4"><StatusPill status={e.initialStatus} /></td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-blue-600 hover:bg-blue-50" asChild title="Edit equipment">
+                          <Link to={`/admin/edit-equipment/${e.id}`}><PencilLine className="h-4 w-4" /></Link>
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-blue-600 hover:bg-blue-50" onClick={() => cycleStatus(e)} title="Cycle status">
+                          {e.initialStatus === "Available" ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                        </Button>
+                        {confirmDelete === e.id ? (
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => { deleteEquipment(e.facilityId, e.id); setConfirmDelete(null); }}>Confirm</Button>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+                          </div>
+                        ) : (
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-red-500 hover:bg-red-50" onClick={() => setConfirmDelete(e.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length === 0 && (
+              <div className="text-center py-10 text-gray-400">
+                <FlaskConical className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p>No equipment found</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ── Facilities ────────────────────────────────────────────────────────────────
+function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section) => void }) {
+  const { facilities, equipment, updateFacilityAvailability, deleteFacility, updateEquipmentStatus } = useAppContext();
+  const [search, setSearch] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [availFilter, setAvailFilter] = useState("All");
+  const [catFilter, setCatFilter] = useState("All");
+  const [eqStatusFilter, setEqStatusFilter] = useState("All");
+
+  const categories = Array.from(new Set(facilities.map(f => f.facilityCategory))).filter(Boolean);
+
+  const filtered = facilities.filter((f) => {
+    const matchesSearch = (f.facilityName || "").toLowerCase().includes(search.toLowerCase()) || (f.facilityCategory || "").toLowerCase().includes(search.toLowerCase());
+    const matchesAvail = availFilter === "All" || f.availabilityStatus === availFilter;
+    const matchesCat = catFilter === "All" || f.facilityCategory === catFilter;
+
+    // For equipment status filter, check if facility has equipment matching that status
+    if (eqStatusFilter !== "All") {
+      const hasMatchingEq = equipment.some(e => e.facilityId === f.id && e.initialStatus === eqStatusFilter);
+      return matchesSearch && matchesAvail && matchesCat && hasMatchingEq;
+    }
+
+    return matchesSearch && matchesAvail && matchesCat;
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Research Facilities</h2>
+          <p className="text-sm text-gray-500">{facilities.length} facilities registered</p>
+        </div>
+        <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>
+          <Link to="/admin/add-facility"><PlusCircle className="h-4 w-4 mr-2" />Add Resources</Link>
+        </Button>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input placeholder="Search facilities..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={availFilter} onValueChange={setAvailFilter}>
+          <SelectTrigger className="w-full sm:w-40">
+            <Filter className="h-4 w-4 mr-2 text-gray-400" /><SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All Status</SelectItem>
+            <SelectItem value="Available">Available</SelectItem>
+            <SelectItem value="Limited">Limited</SelectItem>
+            <SelectItem value="Unavailable">Unavailable</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={catFilter} onValueChange={setCatFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <Filter className="h-4 w-4 mr-2 text-gray-400" /><SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All Categories</SelectItem>
+            {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={eqStatusFilter} onValueChange={setEqStatusFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <Filter className="h-4 w-4 mr-2 text-gray-400" /><SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All Equipment</SelectItem>
+            <SelectItem value="Available">Equip: Available</SelectItem>
+            <SelectItem value="In Use">Equip: In Use</SelectItem>
+            <SelectItem value="Maintenance">Equip: Maintenance</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" className="w-full sm:w-auto ml-auto text-blue-600 border-blue-200 bg-blue-50/50 hover:bg-blue-50 hover:text-blue-700 h-10 px-4" onClick={() => setActiveSection("equipment")}>
+          <FlaskConical className="h-4 w-4 mr-2" />
+          Equipment
+        </Button>
+      </div>
+      <div className="grid md:grid-cols-2 gap-4">
+        {filtered.map((f: Facility) => (
+          <Card key={f.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="pt-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 text-base mb-1 truncate">{f.facilityName}</h3>
+                  <div className="flex items-center gap-2 flex-wrap text-sm text-gray-500 mb-2">
+                    <span>{f.roomLocation}</span>
+                    <span>·</span>
+                    <span>{f.capacity} Researchers</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-sm">{f.facilityCategory}</Badge>
+                    <StatusPill status={f.availabilityStatus} />
+                  </div>
+                  {(f.keyFacilityFeatures || []).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {(f.keyFacilityFeatures || []).slice(0, 3).map((feat) => (
+                        <Badge key={feat} variant="secondary" className="text-xs">{feat}</Badge>
+                      ))}
+                      {(f.keyFacilityFeatures || []).length > 3 && (
+                        <Badge variant="secondary" className="text-xs">+{(f.keyFacilityFeatures || []).length - 3}</Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Associated Equipment grouped by Category - Matching Reference Image */}
+                  {(() => {
+                    const associated = equipment.filter(e => e.facilityId === f.id);
+                    if (associated.length === 0) return null;
+
+                    const grouped = associated.reduce((acc, eq) => {
+                      if (!acc[eq.equipmentCategory]) acc[eq.equipmentCategory] = [];
+                      acc[eq.equipmentCategory].push(eq);
+                      return acc;
+                    }, {} as Record<string, Equipment[]>);
+
+                    return (
+                      <div className="mt-6 pt-5 border-t border-slate-100 space-y-4">
+                        <p className="text-[10px] font-bold uppercase text-slate-400 tracking-[0.1em]">Associated Equipment</p>
+                        <div className="space-y-4">
+                          {Object.entries(grouped).map(([cat, eqs]) => (
+                            <div key={cat} className="space-y-2">
+                              <p className="text-[11px] font-bold text-blue-600/90 tracking-tight">{cat}</p>
+                              <div className="flex flex-wrap gap-2">
+                                {eqs.map(eq => (
+                                  <Badge
+                                    key={eq.id}
+                                    variant="outline"
+                                    className="text-[10px] bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:text-blue-600 transition-colors py-0.5 px-2 font-medium shadow-sm"
+                                  >
+                                    {eq.equipmentName}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+                <div className="flex flex-col gap-2 flex-shrink-0">
+                  <Button size="sm" variant="outline" className="h-8 px-3 text-sm" asChild>
+                    <Link to={`/admin/edit-facility/${f.id}`}><PencilLine className="h-4 w-4 text-blue-600 mr-1.5" />Edit</Link>
+                  </Button>
+                  <RadioGroup
+                    value={f.availabilityStatus}
+                    onValueChange={(val: any) => updateFacilityAvailability(f.id, val)}
+                    className="flex flex-col gap-2 mt-1 border border-gray-100 rounded-md p-2.5 bg-gray-50/50"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Available" id={`avail-${f.id}`} className="h-4 w-4" />
+                      <Label htmlFor={`avail-${f.id}`} className="text-xs cursor-pointer font-medium text-emerald-700">Available</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Limited" id={`limited-${f.id}`} className="h-4 w-4" />
+                      <Label htmlFor={`limited-${f.id}`} className="text-xs cursor-pointer font-medium text-amber-700">Limited</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Unavailable" id={`unavail-${f.id}`} className="h-4 w-4" />
+                      <Label htmlFor={`unavail-${f.id}`} className="text-xs cursor-pointer font-medium text-rose-700">Unavailable</Label>
+                    </div>
+                  </RadioGroup>
+                  {confirmDelete === f.id ? (
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => { deleteFacility(f.id); setConfirmDelete(null); }}>Del</Button>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setConfirmDelete(null)}>No</Button>
+                    </div>
+                  ) : (
+                    <Button size="sm" variant="ghost" className="h-8 px-2 text-red-500 hover:bg-red-50" onClick={() => setConfirmDelete(f.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {filtered.length === 0 && (
+          <div className="md:col-span-2 text-center py-10 text-gray-400">
+            <Building2 className="h-10 w-10 mx-auto mb-2 opacity-30" />
+            <p>No facilities found</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+function UsersSection() {
+  const { users, updateUserStatus } = useAppContext();
+  const [search, setSearch] = useState("");
+
+  const filtered = users.filter((u) =>
+    `${u.firstName ?? ""} ${u.lastName ?? ""}`.toLowerCase().includes(search.toLowerCase()) ||
+    (u.email ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (u.institution ?? "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">Registered Users</h2>
+        <p className="text-sm text-gray-500">{users.length} total accounts</p>
+      </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input placeholder="Search by name, email or institution..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </div>
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left py-3 px-4 font-medium text-gray-600">Name</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 hidden md:table-cell">Role</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 hidden lg:table-cell">Institution</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-600 hidden sm:table-cell">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((u: AppUser) => (
+                  <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="py-3 px-4">
+                      <p className="font-medium text-gray-900">{u.firstName} {u.lastName}</p>
+                      <p className="text-xs text-gray-400">{u.email}</p>
+                    </td>
+                    <td className="py-3 px-4 hidden md:table-cell">
+                      <p className="text-gray-700 text-xs">{u.role}</p>
+                      <p className="text-gray-400 text-xs">{u.department}</p>
+                    </td>
+                    <td className="py-3 px-4 hidden lg:table-cell text-xs text-gray-500">{u.institution}</td>
+                    <td className="py-3 px-4 hidden sm:table-cell text-xs text-gray-500">{u.joinedAt}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length === 0 && (
+              <div className="text-center py-10 text-gray-400">
+                <Users className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p>No users found</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ── Main Admin Page ───────────────────────────────────────────────────────────
+export function AdminPage() {
+  const { currentUser, logout, bookings } = useAppContext();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Use state from router if available, otherwise default to dashboard
+  const [activeSection, setActiveSection] = useState<Section>(
+    location.state?.activeTab || "dashboard"
+  );
+
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+  const pendingCount = bookings.filter((b) => b.status === "Pending").length;
+
+  // Redirect non-admins silently
+  useState(() => {
+    if (!currentUser || currentUser.role !== "admin") {
+      navigate("/");
+    }
+  });
+
+  if (!currentUser || currentUser.role !== "admin") {
+    return null;
+  }
+
+  const navItems: { id: Section; label: string; icon: LucideIcon; badge?: number }[] = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "bookings", label: "Bookings", icon: CalendarCheck, badge: pendingCount },
+    { id: "facilities", label: "Resources", icon: Building2 },
+    { id: "users", label: "Users", icon: Users },
+  ];
+
+  const handleLogout = () => { logout(); navigate("/"); };
+
+  return (
+    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
+      {/* Admin Top Bar */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200 flex-none leading-none">
+        <Navbar>
+          <Navbar.Brand
+            icon={Shield}
+            title="Admin Portal"
+            subtitle="R&D Center Management"
+          />
+          <Navbar.Actions>
+            <Button size="sm" variant="outline" className="text-gray-600 gap-1.5 border-gray-200 h-8" asChild>
+              <Link to="/"><ChevronRight className="h-4 w-4 rotate-180" />Site</Link>
+            </Button>
+          </Navbar.Actions>
+        </Navbar>
+      </div>
+
+      <div className="flex-1 overflow-hidden w-full flex bg-white">
+        <div className="flex w-full h-full">
+          {/* Sidebar — desktop */}
+          <Sidebar>
+            <Sidebar.Nav>
+              <Sidebar.Section title="Management">
+                {navItems.map(({ id, label, icon: Icon, badge }) => (
+                  <Sidebar.Item
+                    key={id}
+                    label={label}
+                    icon={Icon}
+                    isActive={activeSection === id}
+                    onClick={() => setActiveSection(id)}
+                    badge={badge}
+                  />
+                ))}
+              </Sidebar.Section>
+            </Sidebar.Nav>
+            <Sidebar.Profile
+              onSettingsClick={() => setActiveSection("settings")}
+              onLogoutClick={() => setIsLogoutOpen(true)}
+            />
+          </Sidebar>
+
+          <main className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-br from-blue-50 to-cyan-50">
+            <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+              {activeSection === "dashboard" && <DashboardSection setSection={setActiveSection} />}
+              {activeSection === "bookings" && <BookingsSection />}
+              {activeSection === "equipment" && <EquipmentSection />}
+              {activeSection === "facilities" && <FacilitiesSection setActiveSection={setActiveSection} />}
+              {activeSection === "users" && <UsersSection />}
+              {activeSection === "settings" && <SettingsContent onBack={() => setActiveSection("dashboard")} />}
+            </div>
+          </main>
+        </div>
+      </div>
+      <LogoutModal
+        open={isLogoutOpen}
+        onOpenChange={setIsLogoutOpen}
+        onConfirm={handleLogout}
+      />
+    </div >
+  );
+}
