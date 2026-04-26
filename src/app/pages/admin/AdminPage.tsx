@@ -6,7 +6,7 @@ import {
   LayoutDashboard, CalendarCheck, FlaskConical, Building2, Users,
   PackagePlus, PlusCircle, CheckCircle, XCircle, Clock, Trash2,
   Search, Shield, Activity, ChevronRight, LogOut, ToggleLeft, ToggleRight, Filter,
-  LucideIcon, Settings, User, PencilLine, Package
+  LucideIcon, Settings, User, PencilLine, Package, Printer, FileSpreadsheet, Download
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -21,8 +21,9 @@ import { useAppContext } from "../../context/AppContext";
 import type { Booking, Equipment, Facility, AppUser } from "../../context/AppContext";
 import { LogoutModal } from "../../components/LogoutModal";
 import { Modal } from "../../components/Modal";
-import { seedAllCollections, ensureDefaultData } from "../../services/seedFirestore";
+import { ensureDefaultData } from "../../services/seedFirestore";
 import emailjs from '@emailjs/browser';
+import * as XLSX from 'xlsx';
 
 import { SettingsContent } from "../SettingsPage";
 
@@ -91,6 +92,45 @@ function DashboardSection({ setSection }: { setSection: (s: Section) => void }) 
       setSyncStatus("error");
       setTimeout(() => setSyncStatus(""), 4000);
     }
+  };
+
+  const exportAllData = () => {
+    const wb = XLSX.utils.book_new();
+    
+    // Bookings
+    const wsBookings = XLSX.utils.json_to_sheet(bookings.map(b => ({
+      ID: b.id, Name: b.name, Email: b.email, Type: b.type, 
+      Facility: b.facility || '', Equipment: b.equipment || '',
+      Persons: b.persons || '', Quantity: b.quantity || '',
+      Date: b.date, TimeSlot: b.timeSlot, SubmittedAt: b.submittedAt, Status: b.status
+    })));
+    XLSX.utils.book_append_sheet(wb, wsBookings, "Bookings");
+
+    // Equipment
+    const wsEquipment = XLSX.utils.json_to_sheet(equipment.map(e => ({
+      ID: e.id, Name: e.equipmentName, Category: e.equipmentCategory,
+      Manufacturer: e.manufacturer, Model: e.modelNumber,
+      FacilityID: e.facilityId, Status: e.initialStatus
+    })));
+    XLSX.utils.book_append_sheet(wb, wsEquipment, "Equipment");
+
+    // Facilities
+    const wsFacilities = XLSX.utils.json_to_sheet(facilities.map(f => ({
+      ID: f.id, Name: f.facilityName, Category: f.facilityCategory,
+      Location: f.roomLocation, Capacity: f.capacity, Status: f.availabilityStatus,
+      Features: (f.keyFacilityFeatures || []).join(', ')
+    })));
+    XLSX.utils.book_append_sheet(wb, wsFacilities, "Facilities");
+
+    // Users
+    const wsUsers = XLSX.utils.json_to_sheet(users.map(u => ({
+      ID: u.id, FirstName: u.firstName, LastName: u.lastName, Email: u.email,
+      Role: u.role, Institution: u.institution, Department: u.department,
+      Status: u.status, JoinedAt: u.joinedAt
+    })));
+    XLSX.utils.book_append_sheet(wb, wsUsers, "Users");
+
+    XLSX.writeFile(wb, "Complete_Inventory_Data.xlsx");
   };
 
   return (
@@ -210,6 +250,15 @@ function DashboardSection({ setSection }: { setSection: (s: Section) => void }) 
                     <>🔄 Sync Lab Data to Firebase</>
                   )}
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full text-xs text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
+                  onClick={exportAllData}
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
+                  Export All Data (Excel)
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -226,6 +275,7 @@ function BookingsSection() {
   const { bookings, users, updateBookingStatus } = useAppContext();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [exportPeriod, setExportPeriod] = useState("all");
 
   // Confirmation state
   const [confirmModal, setConfirmModal] = useState<{ open: boolean, bookingId: string | null, action: "Approved" | "Rejected" | null }>({
@@ -247,13 +297,60 @@ function BookingsSection() {
       && (statusFilter === "All" || b.status === statusFilter);
   }).sort((a, b) => (a.submittedAt || "").localeCompare(b.submittedAt || ""));
 
+  const exportBookings = () => {
+    const now = new Date();
+    const filterDate = new Date();
+    if (exportPeriod === "1week") filterDate.setDate(now.getDate() - 7);
+    else if (exportPeriod === "1month") filterDate.setMonth(now.getMonth() - 1);
+    else if (exportPeriod === "2month") filterDate.setMonth(now.getMonth() - 2);
+    else if (exportPeriod === "3month") filterDate.setMonth(now.getMonth() - 3);
+    else if (exportPeriod === "6month") filterDate.setMonth(now.getMonth() - 6);
+
+    const bookingsToExport = bookings.filter(b => {
+      if (exportPeriod === "all") return true;
+      const bDate = new Date(b.submittedAt);
+      return bDate >= filterDate;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(bookingsToExport.map(b => ({
+      ID: b.id, Name: b.name, Email: b.email, Type: b.type, 
+      Facility: b.facility || '', Equipment: b.equipment || '',
+      Persons: b.persons || '', Quantity: b.quantity || '',
+      Date: b.date, TimeSlot: b.timeSlot, SubmittedAt: b.submittedAt, Status: b.status
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Bookings");
+    XLSX.writeFile(wb, "Bookings_Data.xlsx");
+  };
+
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Booking Requests</h2>
-        <p className="text-sm text-gray-500">{bookings.length} total requests</p>
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Booking Requests</h2>
+          <p className="text-sm text-gray-500">{bookings.length} total requests</p>
+        </div>
+        <div className="flex items-center gap-2 print:hidden">
+          <Select value={exportPeriod} onValueChange={setExportPeriod}>
+            <SelectTrigger className="w-[140px] bg-white h-9">
+              <SelectValue placeholder="Period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Bookings</SelectItem>
+              <SelectItem value="1week">Last 1 Week</SelectItem>
+              <SelectItem value="1month">Last 1 Month</SelectItem>
+              <SelectItem value="2month">Last 2 Months</SelectItem>
+              <SelectItem value="3month">Last 3 Months</SelectItem>
+              <SelectItem value="6month">Last 6 Months</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" className="bg-white h-9" onClick={exportBookings}>
+            <Download className="h-4 w-4 mr-2 text-emerald-600" />
+            Download
+          </Button>
+        </div>
       </div>
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 print:hidden">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input placeholder="Search by name, ID or email..." className="pl-10"
@@ -278,7 +375,7 @@ function BookingsSection() {
               <thead>
                 <tr className="border-b bg-gray-50">
                   {["Researcher", "Resource", "Date & Time", "Requested Date", "Status", "Actions"].map((h, i, arr) => (
-                    <th key={h} className={`${h === "Actions" ? "text-right pr-12" : "text-left"} py-3 px-4 font-medium text-gray-600 ${h === "Resource" ? "hidden md:table-cell" : h === "Date & Time" || h === "Requested Date" ? "hidden lg:table-cell" : ""} ${i === 0 ? "rounded-tl-xl" : ""} ${i === arr.length - 1 ? "rounded-tr-xl" : ""}`}>
+                    <th key={h} className={`${h === "Actions" ? "text-right pr-12 print:hidden" : "text-left"} py-3 px-4 font-medium text-gray-600 ${h === "Resource" ? "hidden md:table-cell" : h === "Date & Time" || h === "Requested Date" ? "hidden lg:table-cell" : ""} ${i === 0 ? "rounded-tl-xl" : ""} ${i === arr.length - 1 ? "rounded-tr-xl" : ""}`}>
                       {h}
                     </th>
                   ))}
@@ -335,7 +432,7 @@ function BookingsSection() {
                       {!isNaN(new Date(b.submittedAt).getTime()) && b.submittedAt.includes('T') && new Date(b.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="py-3 px-4"><StatusPill status={b.status} /></td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 print:hidden">
                       <div className="flex justify-end pr-2">
                         <div className="flex items-center gap-3 flex-wrap w-max">
                           {(b.status === "Pending" || b.status === "Approved" || b.status === "Rejected") && (
@@ -421,6 +518,17 @@ function EquipmentSection() {
     updateEquipmentStatus(e.facilityId, e.id, cycle[(cycle.indexOf(e.initialStatus) + 1) % 3]);
   };
 
+  const exportEquipment = () => {
+    const ws = XLSX.utils.json_to_sheet(equipment.map(e => ({
+      ID: e.id, Name: e.equipmentName, Category: e.equipmentCategory,
+      Manufacturer: e.manufacturer, Model: e.modelNumber,
+      FacilityID: e.facilityId, Status: e.initialStatus
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Equipment");
+    XLSX.writeFile(wb, "Equipment_Data.xlsx");
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
@@ -428,8 +536,14 @@ function EquipmentSection() {
           <h2 className="text-xl font-bold text-gray-900">Equipment Catalog</h2>
           <p className="text-sm text-gray-500">{equipment.length} instruments registered</p>
         </div>
+        <div className="flex items-center gap-2 print:hidden">
+          <Button variant="outline" className="bg-white" onClick={exportEquipment}>
+            <Download className="h-4 w-4 mr-2 text-emerald-600" />
+            Download
+          </Button>
+        </div>
       </div>
-      <div className="relative">
+      <div className="relative print:hidden">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input placeholder="Search equipment..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
@@ -444,7 +558,7 @@ function EquipmentSection() {
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden md:table-cell">Manufacturer / Model</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600 hidden lg:table-cell">Location</th>
                   <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">Actions</th>
+                  <th className="text-right py-3 px-4 font-medium text-gray-600 print:hidden">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -465,7 +579,7 @@ function EquipmentSection() {
                       <span className="truncate block text-[10px] italic">ID: {e.facilityId}</span>
                     </td>
                     <td className="py-3 px-4"><StatusPill status={e.initialStatus} /></td>
-                    <td className="py-3 px-4">
+                    <td className="py-3 px-4 print:hidden">
                       <div className="flex items-center justify-end gap-1">
                         <Button size="sm" variant="ghost" className="h-7 px-2 text-blue-600 hover:bg-blue-50" asChild title="Edit equipment">
                           <Link to={`/admin/edit-equipment/${e.id}`}><PencilLine className="h-4 w-4" /></Link>
@@ -527,6 +641,17 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
     return matchesSearch && matchesAvail && matchesCat;
   });
 
+  const exportFacilities = () => {
+    const ws = XLSX.utils.json_to_sheet(facilities.map(f => ({
+      ID: f.id, Name: f.facilityName, Category: f.facilityCategory,
+      Location: f.roomLocation, Capacity: f.capacity, Status: f.availabilityStatus,
+      Features: (f.keyFacilityFeatures || []).join(', ')
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Facilities");
+    XLSX.writeFile(wb, "Facilities_Data.xlsx");
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
@@ -534,11 +659,17 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
           <h2 className="text-xl font-bold text-gray-900">Research Facilities</h2>
           <p className="text-sm text-gray-500">{facilities.length} facilities registered</p>
         </div>
-        <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>
-          <Link to="/admin/add-facility"><PlusCircle className="h-4 w-4 mr-2" />Add Resources</Link>
-        </Button>
+        <div className="flex items-center gap-2 print:hidden">
+          <Button variant="outline" className="bg-white" onClick={exportFacilities}>
+            <Download className="h-4 w-4 mr-2 text-emerald-600" />
+            Download
+          </Button>
+          <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>
+            <Link to="/admin/add-facility"><PlusCircle className="h-4 w-4 mr-2" />Add Resources</Link>
+          </Button>
+        </div>
       </div>
-      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center print:hidden">
         <div className="relative w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input placeholder="Search facilities..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -642,7 +773,7 @@ function FacilitiesSection({ setActiveSection }: { setActiveSection: (s: Section
                     );
                   })()}
                 </div>
-                <div className="flex flex-col gap-2 flex-shrink-0">
+                <div className="flex flex-col gap-2 flex-shrink-0 print:hidden">
                   <Button size="sm" variant="outline" className="h-8 px-3 text-sm" asChild>
                     <Link to={`/admin/edit-facility/${f.id}`}><PencilLine className="h-4 w-4 text-blue-600 mr-1.5" />Edit</Link>
                   </Button>
@@ -701,13 +832,32 @@ function UsersSection() {
     (u.institution ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
+  const exportUsers = () => {
+    const ws = XLSX.utils.json_to_sheet(users.map(u => ({
+      ID: u.id, FirstName: u.firstName, LastName: u.lastName, Email: u.email,
+      Role: u.role, Institution: u.institution, Department: u.department,
+      Status: u.status, JoinedAt: u.joinedAt
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Users");
+    XLSX.writeFile(wb, "Users_Data.xlsx");
+  };
+
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Registered Users</h2>
-        <p className="text-sm text-gray-500">{users.length} total accounts</p>
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Registered Users</h2>
+          <p className="text-sm text-gray-500">{users.length} total accounts</p>
+        </div>
+        <div className="flex items-center gap-2 print:hidden">
+          <Button variant="outline" className="bg-white" onClick={exportUsers}>
+            <Download className="h-4 w-4 mr-2 text-emerald-600" />
+            Download
+          </Button>
+        </div>
       </div>
-      <div className="relative">
+      <div className="relative print:hidden">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input placeholder="Search by name, email or institution..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
@@ -789,9 +939,9 @@ export function AdminPage() {
   const handleLogout = () => { logout(); navigate("/"); };
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-full bg-gray-50 flex flex-col overflow-hidden print:overflow-visible print:h-auto print:block">
       {/* Admin Top Bar */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200 flex-none leading-none">
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-200 flex-none leading-none print:hidden">
         <Navbar>
           <Navbar.Brand
             icon={Shield}
@@ -806,32 +956,34 @@ export function AdminPage() {
         </Navbar>
       </div>
 
-      <div className="flex-1 overflow-hidden w-full flex bg-white">
-        <div className="flex w-full h-full">
+      <div className="flex-1 overflow-hidden w-full flex bg-white print:overflow-visible print:block print:h-auto">
+        <div className="flex w-full h-full print:block print:h-auto">
           {/* Sidebar — desktop */}
-          <Sidebar>
-            <Sidebar.Nav>
-              <Sidebar.Section title="Management">
-                {navItems.map(({ id, label, icon: Icon, badge }) => (
-                  <Sidebar.Item
-                    key={id}
-                    label={label}
-                    icon={Icon}
-                    isActive={activeSection === id}
-                    onClick={() => setActiveSection(id)}
-                    badge={badge}
-                  />
-                ))}
-              </Sidebar.Section>
-            </Sidebar.Nav>
-            <Sidebar.Profile
-              onSettingsClick={() => setActiveSection("settings")}
-              onLogoutClick={() => setIsLogoutOpen(true)}
-            />
-          </Sidebar>
+          <div className="print:hidden h-full flex-shrink-0">
+            <Sidebar>
+              <Sidebar.Nav>
+                <Sidebar.Section title="Management">
+                  {navItems.map(({ id, label, icon: Icon, badge }) => (
+                    <Sidebar.Item
+                      key={id}
+                      label={label}
+                      icon={Icon}
+                      isActive={activeSection === id}
+                      onClick={() => setActiveSection(id)}
+                      badge={badge}
+                    />
+                  ))}
+                </Sidebar.Section>
+              </Sidebar.Nav>
+              <Sidebar.Profile
+                onSettingsClick={() => setActiveSection("settings")}
+                onLogoutClick={() => setIsLogoutOpen(true)}
+              />
+            </Sidebar>
+          </div>
 
-          <main className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-br from-blue-50 to-cyan-50">
-            <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+          <main className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-br from-blue-50 to-cyan-50 print:bg-none print:bg-white print:overflow-visible print:block print:h-auto print:p-0">
+            <div className="w-full px-4 sm:px-6 lg:px-8 py-6 print:p-0">
               {activeSection === "dashboard" && <DashboardSection setSection={setActiveSection} />}
               {activeSection === "bookings" && <BookingsSection />}
               {activeSection === "equipment" && <EquipmentSection />}

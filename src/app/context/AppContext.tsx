@@ -487,6 +487,48 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
       if (booking.userId) {
         await setDoc(doc(db, "users", booking.userId, "bookings", id), firestorePayload);
       }
+
+      // 3. Send Email Notifications
+      try {
+        const resourceName = booking.type === "facility" ? booking.facility : booking.equipment;
+        
+        // Notify User
+        const userMessage = `We have successfully received your booking request through the EWB Portal.\n\n🔹 Booking Summary\n• Resource: ${resourceName}\n• Requested Date: ${booking.date}\n• Time Duration: ${booking.timeSlot}\n\nYour request is currently pending admin approval. We will notify you once an action is taken.`;
+
+        emailjs.send(
+          "service_n16bnwf",
+          "template_irtbf1c",
+          {
+            name: booking.name,
+            email: booking.email,
+            title: `Booking Request Received`,
+            status: "Pending",
+            message: userMessage,
+            id: id
+          },
+          { publicKey: "FTAuSlj6ffIeU6e0l" }
+        ).catch(err => console.error('Failed to send user confirmation email', err));
+
+        // Notify Admin
+        const adminMessage = `This is to inform you that a new equipment/facility booking request has been successfully submitted through the EWB Portal.\n\n🔹 User Information\n• Name: ${booking.name}\n• Email: ${booking.email}\n• Department: ${booking.department}\n\n🔹 Booking Summary\n• Equipment / Facility: ${resourceName}\n• Requested Date: ${booking.date}\n• Time Duration: ${booking.timeSlot}\n\n🔹 Additional Details\n• Purpose: ${booking.purpose}\n• Submitted On: ${new Date(booking.submittedAt).toLocaleString()}\n\nPlease review this request at your earliest convenience and take appropriate action (Approve/Reject) via the Admin Portal.`;
+
+        emailjs.send(
+          "service_n16bnwf",
+          "template_irtbf1c",
+          {
+            name: "Admin",
+            email: "clginventorymanagement@gmail.com",
+            title: `New Booking Request`,
+            status: "Action Required",
+            message: adminMessage,
+            id: id
+          },
+          { publicKey: "FTAuSlj6ffIeU6e0l" }
+        ).catch(err => console.error('Failed to send admin notification email', err));
+      } catch (err) {
+        console.error("EmailJS Error during booking:", err);
+      }
+
       return id;
     } catch (err) {
       console.error("❌ Error adding booking:", err);
