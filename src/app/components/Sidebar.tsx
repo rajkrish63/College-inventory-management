@@ -22,7 +22,7 @@ export function Sidebar({ children, isOpen = true, className = "" }: SidebarProp
     return (
         <aside
             className={`${isOpen ? "w-[280px]" : "w-0 overflow-hidden"
-                } bg-white border-r border-gray-200 shrink-0 text-slate-700 flex flex-col transition-all duration-300 ease-in-out z-40 relative shadow-sm ${className}`}
+                } bg-white border-r border-gray-200 shrink-0 text-slate-700 flex flex-col h-full transition-all duration-300 ease-in-out z-40 relative shadow-sm ${className}`}
         >
             {children}
         </aside>

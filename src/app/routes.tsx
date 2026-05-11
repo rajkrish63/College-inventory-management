@@ -9,6 +9,7 @@ import { AuthPage } from "./pages/AuthPage";
 import { AdminPage } from "./pages/admin/AdminPage";
 import { CombinedAddPage } from "./pages/admin/CombinedAddPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { ResearchOutcomePage } from "./pages/ResearchOutcomePage";
 
 export const router = createBrowserRouter([
   // Auth pages — standalone, no sidebar/navbar
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
       { path: "booking", Component: BookingPage },
       { path: "my-bookings", Component: BookingsPage },
       { path: "settings", Component: SettingsPage },
+      { path: "research-outcome", Component: ResearchOutcomePage },
       { path: "admin", Component: AdminPage },
       { path: "admin/add-equipment", Component: CombinedAddPage },
       { path: "admin/edit-equipment/:id", Component: CombinedAddPage },

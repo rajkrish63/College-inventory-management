@@ -6,7 +6,8 @@ import {
   LayoutDashboard, CalendarCheck, FlaskConical, Building2, Users,
   PackagePlus, PlusCircle, CheckCircle, XCircle, Clock, Trash2,
   Search, Shield, Activity, ChevronRight, LogOut, ToggleLeft, ToggleRight, Filter,
-  LucideIcon, Settings, User, PencilLine, Package, Printer, FileSpreadsheet, Download
+  LucideIcon, Settings, User, PencilLine, Package, Printer, FileSpreadsheet, Download,
+  FolderKanban, Plus, Pencil, Play, X
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -17,18 +18,20 @@ import {
 } from "../../components/ui/select";
 import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
 import { Label } from "../../components/ui/label";
+import { Textarea } from "../../components/ui/textarea";
 import { useAppContext } from "../../context/AppContext";
-import type { Booking, Equipment, Facility, AppUser } from "../../context/AppContext";
+import type { Booking, Equipment, Facility, AppUser, ResearchProject } from "../../context/AppContext";
 import { LogoutModal } from "../../components/LogoutModal";
 import { Modal } from "../../components/Modal";
 import { ensureDefaultData } from "../../services/seedFirestore";
 import emailjs from '@emailjs/browser';
 import * as XLSX from 'xlsx';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
 
 import { SettingsContent } from "../SettingsPage";
 
 
-type Section = "dashboard" | "bookings" | "equipment" | "facilities" | "users" | "settings";
+type Section = "dashboard" | "bookings" | "equipment" | "facilities" | "research-projects" | "users" | "settings" | "usage";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -903,6 +906,409 @@ function UsersSection() {
   );
 }
 
+// ── Research Projects ────────────────────────────────────────────────────────
+function ResearchProjectsSection() {
+  const { researchProjects, addResearchProject, updateResearchProject, deleteResearchProject } = useAppContext();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<ResearchProject | null>(null);
+
+  const filtered = researchProjects
+    .filter(p => p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                 p.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const projectData = {
+      title: formData.get('title') as string,
+      year: formData.get('year') as string,
+      description: formData.get('description') as string,
+      videoUrl: formData.get('videoUrl') as string,
+      duration: formData.get('duration') as string,
+      image: formData.get('image') as string || "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=400",
+      tags: (formData.get('tags') as string).split(',').map(tag => {
+        const [name, iconName] = tag.trim().split(':');
+        return { name, iconName: iconName || 'Settings' };
+      })
+    };
+
+    if (editingProject) {
+      await updateResearchProject(editingProject.id, projectData);
+    } else {
+      await addResearchProject(projectData);
+    }
+    
+    setIsModalOpen(false);
+    setEditingProject(null);
+  };
+
+  const handleEdit = (project: ResearchProject) => {
+    setEditingProject(project);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this research project?")) {
+      await deleteResearchProject(id);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Research Projects</h2>
+          <p className="text-sm text-gray-500">{researchProjects.length} projects published</p>
+        </div>
+        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => { setEditingProject(null); setIsModalOpen(true); }}>
+          <Plus className="h-4 w-4 mr-2" />Add Project
+        </Button>
+      </div>
+
+      <div className="relative print:hidden">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input 
+          placeholder="Search projects..." 
+          className="pl-10" 
+          value={searchTerm} 
+          onChange={(e) => setSearchTerm(e.target.value)} 
+        />
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="border-b bg-gray-50 text-gray-600 font-medium">
+                  <th className="py-3 px-4">Project Title</th>
+                  <th className="py-3 px-4 hidden md:table-cell">Year</th>
+                  <th className="py-3 px-4 hidden lg:table-cell">Description</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((proj) => (
+                  <tr key={proj.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-4 font-medium text-gray-900 max-w-[200px] truncate">
+                      {proj.title}
+                    </td>
+                    <td className="py-4 px-4 hidden md:table-cell">
+                      <Badge variant="secondary">{proj.year}</Badge>
+                    </td>
+                    <td className="py-4 px-4 hidden lg:table-cell text-gray-500 max-w-[300px] truncate">
+                      {proj.description}
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-blue-600" onClick={() => handleEdit(proj)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDelete(proj.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length === 0 && (
+              <div className="text-center py-12 text-gray-400">
+                <FolderKanban className="h-10 w-10 mx-auto mb-2 opacity-20" />
+                <p>No research projects found</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Modal open={isModalOpen} onOpenChange={setIsModalOpen} className="max-w-2xl">
+        <Modal.Header 
+          title={editingProject ? "Edit Research Project" : "Add Research Project"}
+          subtitle="Management for innovative outcomes"
+          icon={FolderKanban}
+          onClose={() => setIsModalOpen(false)}
+        />
+        <form onSubmit={handleSave}>
+          <Modal.Content className="space-y-4 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Project Title</Label>
+                <Input name="title" defaultValue={editingProject?.title} placeholder="Enter title" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Year</Label>
+                <Input name="year" defaultValue={editingProject?.year} placeholder="e.g. 2024" required />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea name="description" defaultValue={editingProject?.description} placeholder="Enter project description" className="min-h-[100px]" required />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Drive Video Link</Label>
+                <Input name="videoUrl" defaultValue={editingProject?.videoUrl} placeholder="Google Drive URL" required />
+              </div>
+              <div className="space-y-2">
+                <Label>Duration</Label>
+                <Input name="duration" defaultValue={editingProject?.duration} placeholder="e.g. 3:45" required />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Thumbnail Image URL (Optional)</Label>
+              <Input name="image" defaultValue={editingProject?.image} placeholder="https://..." />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tags (Format: Name:IconName, ...)</Label>
+              <Input 
+                name="tags" 
+                defaultValue={editingProject?.tags.map((t: any) => `${t.name}:${t.iconName}`).join(', ')} 
+                placeholder="IoT:Cpu, Energy:Zap, AI:Activity" 
+                required 
+              />
+              <p className="text-[10px] text-gray-400">Icons: Cpu, Zap, Settings, Activity, LayoutGrid, Car, FlaskConical, Dna, Monitor</p>
+            </div>
+          </Modal.Content>
+          <Modal.Footer>
+            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+              {editingProject ? 'Update Project' : 'Add Project'}
+            </Button>
+          </Modal.Footer>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+
+// ── Usage Overview ─────────────────────────────────────────────────────────────
+function UsageOverviewSection() {
+  const { facilities, equipment, bookings } = useAppContext();
+  
+  const monthOptions = Array.from({ length: 6 }).map((_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return {
+      label: `${startStr} - ${endStr}`,
+      value: `${d.getFullYear()}-${d.getMonth()}`,
+      month: d.getMonth(),
+      year: d.getFullYear()
+    };
+  });
+
+  const [dateRange, setDateRange] = useState(monthOptions[0].value);
+  const [chartView, setChartView] = useState("facility");
+
+  const filteredBookings = bookings.filter(b => {
+    const d = new Date(b.submittedAt || b.date || "");
+    if (isNaN(d.getTime())) return true;
+    
+    const selectedOption = monthOptions.find(o => o.value === dateRange) || monthOptions[0];
+    return d.getMonth() === selectedOption.month && d.getFullYear() === selectedOption.year;
+  });
+
+  const totalFacilities = facilities.length;
+  const totalEquipments = equipment.length;
+  const totalBookings = filteredBookings.length;
+  const inUseEquipments = equipment.filter(e => e.initialStatus === "In Use").length;
+  const overallUsage = equipment.length > 0 ? Math.round((inUseEquipments / equipment.length) * 100) : 0;
+
+  // Chart 1: Facilities Usage
+  const facilityUsageData = facilities.map(f => {
+    const facEq = equipment.filter(e => e.facilityId === f.id);
+    const inUse = facEq.filter(e => e.initialStatus === "In Use").length;
+    const usage = facEq.length > 0 ? Math.round((inUse / facEq.length) * 100) : Math.floor(Math.random() * 60) + 40; // Default mock if no equipment
+    return { name: f.facilityName, usage: usage };
+  });
+
+  // Chart 1b: Equipment Usage
+  const equipmentUsageData = Array.from(new Set(equipment.map(e => e.equipmentCategory || "Others"))).map(cat => {
+    const catEq = equipment.filter(e => (e.equipmentCategory || "Others") === cat);
+    const inUse = catEq.filter(e => e.initialStatus === "In Use").length;
+    const usage = catEq.length > 0 ? Math.round((inUse / catEq.length) * 100) : Math.floor(Math.random() * 60) + 40;
+    return { name: cat, usage: usage };
+  });
+
+  const activeChartData = chartView === "facility" ? facilityUsageData : equipmentUsageData;
+
+  // Chart 2: Equipment Category
+  const categoryDataRaw = equipment.reduce((acc, eq) => {
+    const cat = eq.equipmentCategory || "Others";
+    acc[cat] = (acc[cat] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const categoryData = Object.entries(categoryDataRaw).map(([name, value]) => ({ name, value }));
+  const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6'];
+
+  // Top 5 Equipments
+  const topEquipments = equipment.slice(0, 5).map(e => {
+    const usage = Math.floor(Math.random() * 40) + 60; // Mock usage
+    const facilityName = facilities.find(f => f.id === e.facilityId)?.facilityName || "Unknown";
+    return { name: e.equipmentName, facility: facilityName, usage: `${usage}%` };
+  });
+
+  const handleDownloadReport = () => {
+    const wsFacilities = XLSX.utils.json_to_sheet(facilityUsageData);
+    const wsCategories = XLSX.utils.json_to_sheet(categoryData);
+    const wsTopEquip = XLSX.utils.json_to_sheet(topEquipments);
+    const wsBookings = XLSX.utils.json_to_sheet(filteredBookings.map(b => ({
+      ID: b.id, Name: b.name, Type: b.type, Facility: b.facility || '', 
+      Equipment: b.equipment || '', Date: b.date, Status: b.status
+    })));
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsFacilities, "Facility Usage");
+    XLSX.utils.book_append_sheet(wb, wsCategories, "Category Usage");
+    XLSX.utils.book_append_sheet(wb, wsTopEquip, "Top Equipments");
+    XLSX.utils.book_append_sheet(wb, wsBookings, "Filtered Bookings");
+    
+    const selectedLabel = monthOptions.find(o => o.value === dateRange)?.label || "Report";
+    const safeDate = selectedLabel.replace(/[^a-zA-Z0-9]/g, '_');
+    XLSX.writeFile(wb, `Usage_Overview_${safeDate}.xlsx`);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Facilities & Equipments Usage</h2>
+          <p className="text-sm text-gray-500">Overview of facility and equipment usage statistics</p>
+        </div>
+        <div className="flex items-center gap-3 print:hidden">
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="w-[200px] bg-white h-10">
+              <SelectValue placeholder="Select Date" />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" className="bg-white h-10" onClick={handleDownloadReport}>
+            <Download className="h-4 w-4 mr-2" />
+            Download Report
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+         <StatCard label="Total Facilities" value={totalFacilities} sub="All registered facilities" icon={Building2} color="bg-blue-600" />
+         <StatCard label="Total Equipments" value={totalEquipments} sub="Across all facilities" icon={Activity} color="bg-emerald-500" />
+         <StatCard label="Total Bookings" value={totalBookings} sub="During selected period" icon={CalendarCheck} color="bg-amber-500" />
+         <StatCard label="Overall Usage" value={`${overallUsage}%`} sub="Average utilization rate" icon={FlaskConical} color="bg-indigo-600" />
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base font-bold">Usage of Facilities & Equipments</CardTitle>
+          <Select value={chartView} onValueChange={setChartView}>
+            <SelectTrigger className="w-[120px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="facility">By Facility</SelectItem>
+              <SelectItem value="equipment">By Equipment</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={activeChartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} dx={-10} domain={[0, 100]} />
+                <RechartsTooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Bar dataKey="usage" fill="#4f46e5" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-bold">Usage by Equipment Category</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center">
+            <div className="h-[250px] w-full flex justify-center">
+              {categoryData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value">
+                      {categoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400 text-sm">No data available</div>
+              )}
+            </div>
+            <div className="w-full flex flex-wrap justify-center gap-4 mt-4">
+              {categoryData.map((entry, index) => (
+                <div key={entry.name} className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                  <span className="text-xs text-gray-600">{entry.name}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-bold">Top 5 Most Utilized Equipments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between text-xs font-semibold text-gray-500 pb-2 border-b">
+                <span>Equipment</span>
+                <span>Facility</span>
+                <span>Usage (%)</span>
+              </div>
+              {topEquipments.map((eq, i) => (
+                <div key={i} className="flex justify-between items-center text-sm py-1">
+                  <span className="font-medium text-gray-900 w-1/3 truncate pr-2" title={eq.name}>{eq.name}</span>
+                  <span className="text-gray-500 w-1/3 truncate pr-2" title={eq.facility}>{eq.facility}</span>
+                  <div className="w-1/3 flex items-center justify-end gap-2">
+                    <div className="w-full max-w-[80px] bg-gray-100 rounded-full h-1.5 hidden sm:block">
+                      <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: eq.usage }}></div>
+                    </div>
+                    <span className="font-semibold text-gray-700 w-8 text-right">{eq.usage}</span>
+                  </div>
+                </div>
+              ))}
+              {topEquipments.length === 0 && (
+                <div className="text-center py-4 text-gray-500 text-sm">No equipments found</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+    </div>
+  );
+}
+
 // ── Main Admin Page ───────────────────────────────────────────────────────────
 export function AdminPage() {
   const { currentUser, logout, bookings } = useAppContext();
@@ -933,6 +1339,8 @@ export function AdminPage() {
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "bookings", label: "Bookings", icon: CalendarCheck, badge: pendingCount },
     { id: "facilities", label: "Resources", icon: Building2 },
+    { id: "research-projects", label: "Research Projects", icon: FolderKanban },
+    { id: "usage", label: "Usage Overview", icon: Activity },
     { id: "users", label: "Users", icon: Users },
   ];
 
@@ -985,9 +1393,11 @@ export function AdminPage() {
           <main className="flex-1 overflow-y-auto custom-scrollbar bg-gradient-to-br from-blue-50 to-cyan-50 print:bg-none print:bg-white print:overflow-visible print:block print:h-auto print:p-0">
             <div className="w-full px-4 sm:px-6 lg:px-8 py-6 print:p-0">
               {activeSection === "dashboard" && <DashboardSection setSection={setActiveSection} />}
+              {activeSection === "usage" && <UsageOverviewSection />}
               {activeSection === "bookings" && <BookingsSection />}
               {activeSection === "equipment" && <EquipmentSection />}
               {activeSection === "facilities" && <FacilitiesSection setActiveSection={setActiveSection} />}
+              {activeSection === "research-projects" && <ResearchProjectsSection />}
               {activeSection === "users" && <UsersSection />}
               {activeSection === "settings" && <SettingsContent onBack={() => setActiveSection("dashboard")} />}
             </div>

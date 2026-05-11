@@ -7,7 +7,7 @@ import {
 } from "./firestoreService";
 import { db } from "../../firebase";
 import { setDoc, doc, getDoc } from "firebase/firestore";
-import type { Equipment, Facility, Booking, AppUser } from "../context/AppContext";
+import type { Equipment, Facility, Booking, AppUser, ResearchProject } from "../context/AppContext";
 
 const labData: Record<string, any> = {
     CHEMISTRY_LAB: {
@@ -117,8 +117,55 @@ const seedBookings: Booking[] = [
 ];
 
 const seedUsers: AppUser[] = [
-    { id: "1", firstName: "Sarah", lastName: "Chen", email: "s.chen@mit.edu", department: "Chemistry", institution: "MIT", role: "Principal Investigator", phone: "+1-617-555-0101", idProof: "MIT-ID-77291A", status: "Active", joinedAt: "2025-09-15" },
     { id: "2", firstName: "James", lastName: "Wright", email: "j.wright@stanford.edu", department: "Materials Science", institution: "Stanford University", role: "Professor", phone: "+1-650-555-0202", idProof: "STAN-EMP-0092", status: "Active", joinedAt: "2025-10-01" },
+];
+
+const seedResearchProjects: ResearchProject[] = [
+    {
+        id: "PROJ-1",
+        year: "2024",
+        title: "Smart Energy Management System Using IoT",
+        description: "This project presents an IoT-based smart energy management system that monitors and controls energy consumption in real-time. The system helps in reducing energy wastage and optimizing the usage through data analytics and automated control.",
+        tags: [
+            { name: "IoT", iconName: "Cpu" },
+            { name: "Energy", iconName: "Zap" },
+            { name: "Automation", iconName: "Settings" },
+        ],
+        duration: "3:45",
+        videoUrl: "https://drive.google.com/file/d/1Xy_zVv0Xy_zVv0Xy_zVv0/view",
+        image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=400",
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: "PROJ-2",
+        year: "2024",
+        title: "AI-Based Fault Detection in Industrial Machines",
+        description: "An AI-powered system that detects faults in industrial machines using vibration and temperature data. The model predicts potential failures and helps in preventive maintenance, reducing downtime and maintenance cost.",
+        tags: [
+            { name: "Artificial Intelligence", iconName: "Activity" },
+            { name: "Machine Learning", iconName: "LayoutGrid" },
+            { name: "Predictive Maintenance", iconName: "Settings" },
+        ],
+        duration: "4:12",
+        videoUrl: "https://drive.google.com/file/d/1Xy_zVv0Xy_zVv0Xy_zVv0/view",
+        image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=400",
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: "PROJ-3",
+        year: "2023",
+        title: "Design and Analysis of Electric Vehicle Chassis",
+        description: "This project focuses on the design, simulation, and structural analysis of a lightweight electric vehicle chassis to improve strength, safety, and performance while reducing overall weight.",
+        tags: [
+            { name: "Electric Vehicle", iconName: "Car" },
+            { name: "CAD/CAE", iconName: "LayoutGrid" },
+            { name: "Simulation", iconName: "Activity" },
+        ],
+        duration: "5:08",
+        videoUrl: "https://drive.google.com/file/d/1Xy_zVv0Xy_zVv0Xy_zVv0/view",
+        image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&q=80&w=400",
+        createdAt: new Date().toISOString()
+    }
 ];
 
 export async function ensureDefaultData(): Promise<void> {
@@ -167,6 +214,16 @@ export async function ensureDefaultData(): Promise<void> {
                 }
             }
         }
+
+        // 3. Ensure Research Projects exist
+        for (const proj of seedResearchProjects) {
+            const projRef = doc(db, "researchProjects", proj.id);
+            const projSnap = await getDoc(projRef);
+            if (!projSnap.exists()) {
+                await setDoc(projRef, proj);
+            }
+        }
+
         console.log("✅ Data synchronization complete!");
     } catch (error) {
         console.error("❌ Sync failed:", error);
@@ -189,6 +246,11 @@ export async function seedAllCollections(): Promise<void> {
 
         console.log("  → Seeding users...");
         for (const usr of seedUsers) await addUserDoc(usr);
+
+        console.log("  → Seeding research projects...");
+        for (const proj of seedResearchProjects) {
+            await setDoc(doc(db, "researchProjects", proj.id), proj);
+        }
 
         console.log("✅ Firestore full reset complete!");
     } catch (error) {

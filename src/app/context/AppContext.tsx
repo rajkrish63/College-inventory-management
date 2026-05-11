@@ -14,6 +14,9 @@ import {
   batchUpdateEquipment as fsBatchUpdateEquipment,
   mapEquipment,
   mapFacility,
+  addResearchProjectDoc,
+  updateResearchProjectDoc,
+  deleteResearchProjectDoc,
 } from "../services/firestoreService";
 import { db, auth } from "../../firebase";
 import { seedAllCollections } from "../services/seedFirestore";
@@ -96,6 +99,18 @@ export interface AppUser {
   idProof?: string;
 }
 
+export interface ResearchProject {
+  id: string;
+  year: string;
+  title: string;
+  description: string;
+  videoUrl: string;
+  tags: { name: string; iconName: string }[];
+  duration: string;
+  image?: string;
+  createdAt?: string;
+}
+
 export interface AuthUser {
   id: string | "admin";
   name: string;
@@ -150,6 +165,12 @@ interface AppContextType {
   registerUser: (user: Omit<AppUser, "id" | "status" | "joinedAt"> & { password?: string }) => Promise<{ success: boolean; error?: string }>;
   updateUserStatus: (id: string, status: AppUser["status"]) => void;
 
+  // Research Projects
+  researchProjects: ResearchProject[];
+  addResearchProject: (project: Omit<ResearchProject, "id" | "createdAt">) => Promise<void>;
+  updateResearchProject: (id: string, updates: Partial<Omit<ResearchProject, "id">>) => Promise<void>;
+  deleteResearchProject: (id: string) => Promise<void>;
+
   // Seeding
   seedingStatus: string;
 }
@@ -164,6 +185,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [researchProjects, setResearchProjects] = useState<ResearchProject[]>([]);
   const [seedingStatus, setSeedingStatus] = useState("");
   const [nextEquipId, setNextEquipId] = useState(1);
   const [nextFacilityId, setNextFacilityId] = useState(1);
@@ -246,6 +268,15 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
         setUsers(fsUsr);
         console.log("🔄 Users updated:", fsUsr.length);
       }, (err) => console.warn("Users listener error:", err))
+    );
+
+    // 5. Research Projects (real-time)
+    unsubs.push(
+      onSnapshot(collection(db, "researchProjects"), (snap) => {
+        const fsProj = snap.docs.map(d => ({ ...d.data(), id: d.id } as ResearchProject));
+        setResearchProjects(fsProj);
+        console.log("🔄 Research Projects updated:", fsProj.length);
+      }, (err) => console.warn("Research Projects listener error:", err))
     );
 
     return () => unsubs.forEach(u => u());
@@ -510,7 +541,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
         ).catch(err => console.error('Failed to send user confirmation email', err));
 
         // Notify Admin
-        const adminMessage = `This is to inform you that a new equipment/facility booking request has been successfully submitted through the EWB Portal.\n\n🔹 User Information\n• Name: ${booking.name}\n• Email: ${booking.email}\n• Department: ${booking.department}\n\n🔹 Booking Summary\n• Equipment / Facility: ${resourceName}\n• Requested Date: ${booking.date}\n• Time Duration: ${booking.timeSlot}\n\n🔹 Additional Details\n• Purpose: ${booking.purpose}\n• Submitted On: ${new Date(booking.submittedAt).toLocaleString()}\n\nPlease review this request at your earliest convenience and take appropriate action (Approve/Reject) via the Admin Portal.`;
+        const adminMessage = `This is to inform you that a new equipment/facility booking request has been successfully submitted through the EWB Portal.\n\n🔹 User Information\n• Name: ${booking.name}\n• Email: ${booking.email}\n• Department: ${booking.department}\n\n🔹 Booking Summary\n• Equipment / Facility: ${resourceName}\n• Requested Date: ${booking.date}\n• Time Duration: ${booking.timeSlot}\n\n🔹 Additional Details\n• Purpose: ${booking.purpose}\n• Submitted On: ${new Date(newBooking.submittedAt).toLocaleString()}\n\nPlease review this request at your earliest convenience and take appropriate action (Approve/Reject) via the Admin Portal.`;
 
         emailjs.send(
           "service_n16bnwf",
@@ -657,6 +688,24 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
     updateUserStatusDoc(id, status).catch(console.error);
   };
 
+  // Research Projects
+  const addResearchProject = async (project: Omit<ResearchProject, "id" | "createdAt">) => {
+    const id = `PROJ-${Date.now()}`;
+    const newProj: ResearchProject = { ...project, id, createdAt: new Date().toISOString() };
+    setResearchProjects(prev => [...prev, newProj]);
+    await addResearchProjectDoc(newProj);
+  };
+
+  const updateResearchProject = async (id: string, updates: Partial<Omit<ResearchProject, "id">>) => {
+    setResearchProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    await updateResearchProjectDoc(id, updates as Partial<ResearchProject>);
+  };
+
+  const deleteResearchProject = async (id: string) => {
+    setResearchProjects(prev => prev.filter(p => p.id !== id));
+    await deleteResearchProjectDoc(id);
+  };
+
   return (
     <AppContext.Provider value={{
       currentUser, login, logout, updateUserProfile,
@@ -667,6 +716,7 @@ export function AppContextProvider({ children }: { children: ReactNode }) {
       addFacilityWithEquipment,
       bookings, addBooking, updateBookingStatus,
       users, registerUser, updateUserStatus,
+      researchProjects, addResearchProject, updateResearchProject, deleteResearchProject,
       seedingStatus
     }}>
       {children}

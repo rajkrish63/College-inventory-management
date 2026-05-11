@@ -50,7 +50,6 @@ export function Layout() {
                   <Menu className="h-6 w-6" />
                 </button>
               </div>
-
             </div>
 
             {/* Navigation Content */}
@@ -83,6 +82,16 @@ export function Layout() {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Bottom Menu Items */}
+            <div className="px-4 py-2 border-t border-gray-100">
+              <Sidebar.Item
+                label={isSidebarOpen ? "Research Outcome" : ""}
+                icon={SquarePen}
+                to="/research-outcome"
+                isActive={location.pathname === "/research-outcome"}
+              />
             </div>
 
             {/* Profiles & Settings Card Footer */}

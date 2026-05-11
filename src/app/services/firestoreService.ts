@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../firebase";
-import type { Equipment, Facility, Booking, AppUser } from "../context/AppContext";
+import type { Equipment, Facility, Booking, AppUser, ResearchProject } from "../context/AppContext";
 
 // ── Mappers ──────────────────────────────────────────────────────────────────
 export function mapFacility(id: string, data: any): Facility {
@@ -122,6 +122,20 @@ export async function addBookingDoc(booking: Booking): Promise<void> {
 
 export async function updateBookingDoc(id: string, updates: Partial<Booking>): Promise<void> {
     await updateDoc(doc(db, "bookings", id), updates as Record<string, unknown>);
+}
+
+// ── Research Projects ────────────────────────────────────────────────────────
+
+export async function addResearchProjectDoc(project: ResearchProject): Promise<void> {
+    await setDoc(doc(db, "researchProjects", project.id), project);
+}
+
+export async function updateResearchProjectDoc(id: string, updates: Partial<ResearchProject>): Promise<void> {
+    await updateDoc(doc(db, "researchProjects", id), updates as Record<string, unknown>);
+}
+
+export async function deleteResearchProjectDoc(id: string): Promise<void> {
+    await deleteDoc(doc(db, "researchProjects", id));
 }
 
 // ── Users ────────────────────────────────────────────────────────────────────
